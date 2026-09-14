@@ -1,0 +1,65 @@
+# Framework 接入总表（Discovery）— 迁入/换出口时改；不进 nn-config
+version: 1
+
+data:
+  status: bound
+  kind: framework_dataset
+  entry: "mammoth get_dataset / mammoth_data 缓存"
+  notes: "不另起 auto-nn DataLoader 主路径"
+
+train:
+  status: bound
+  mech: subprocess
+  hooks:
+    - framework_subprocess_cmd
+    - framework_result_path
+  notes: "示例现为手写 subprocess；宜逐步挂到 dispatch_training"
+
+eval:
+  status: bound
+  kind: artifact
+  primary_raw_key: "class_il_accmean_last"
+  ledger_primary_key: "final_avg_accuracy"
+  path_template: "mammoth_data/mammoth_results/class-il/{dataset}/{model}/logs.pyd"
+  row_selector: last
+  notes: "主分取 logs.pyd 最后一项 accmean_taskN 原值；禁止 mean(accmean_task1..N)"
+
+train_log:
+  status: bound
+  mode: post_hoc_files
+  notes: "过程曲线本档弱；不装 NATIVE 完整曲线"
+
+checkpoint:
+  status: unavailable
+  reason: "框架权重未映射进 best_state；策略宜 checkpoint: none"
+  maps_to: unavailable
+  notes: ""
+
+# 创新指纹第三方框架键注册段（可选节；ADR-13）：schema 与种子 catalog 同构，
+# 由 load_innovation_catalog 合并进硬判定（种子优先）。缺失 = 非 framework 仓 no-op。
+# 上游已有算法 → drop_in（换算法 = B 层可插入技法）；基线算法标 baseline；
+# 仓内自研变体有意不登记 → unknown_key → B-different（离线封顶，不出 novel）。
+innovation:
+  primary_keys:
+    MAMMOTH_MODEL:
+      table: mammoth_algorithms
+      tier: B
+    BUFFER_SIZE:
+      table: mammoth_buffers
+      tier: D
+  tables:
+    mammoth_algorithms:
+      bic:
+        change: baseline
+        paper_query: "Large Scale Incremental Learning Wu CVPR 2019"
+      derpp:
+        change: drop_in
+        paper_query: "DER++ Buzzega NeurIPS 2020 arXiv:2004.07211"
+      er:
+        change: drop_in
+        paper_query: "Experience Replay Chaudhry 2019 arXiv:1903.04689"
+    mammoth_buffers:
+      "500":
+        change: baseline
+      "2000":
+        change: baseline

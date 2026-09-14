@@ -1,0 +1,60 @@
+# governance-sync 真源清单 — CI/check_governance_sync_coverage 消费
+# 新增 reflect/auto-run 运行时依赖须同时改 governance-sync.sh 与本文件
+groups:
+  reflect_runtime:
+    - scripts/lib/agent_cli.py
+    - scripts/lib/innovation_fingerprint.py
+    - scripts/lib/innovation_catalog.yaml
+    - scripts/lib/innovation_audit.py
+    - scripts/lib/reflect_evidence.py
+    - scripts/lib/tier_attestation.py
+    - scripts/lib/experiment_journal.py
+    - scripts/lib/external/*.py
+    - scripts/external_tool.py
+    - scripts/check_reflect_runtime.py
+    - scripts/lib/reflect_runtime_check.py
+    - scripts/lib/governance_sync_manifest.yaml
+    - scripts/lib/governance_sync_manifest.py
+  auto_run_bundle:
+    - auto-nn-run.sh
+    - reflect.py
+    - scripts/wait-train.sh
+    - scripts/auto-run-batch-tail.sh
+    - scripts/refresh-human-guidance-baseline.sh
+    - scripts/claude_stream_summarize.py
+    - scripts/claude_stream_result_watchdog.py
+    - scripts/mark_reflect_consumed.py
+    - scripts/lib/reflect_index.py
+    - scripts/build-run-context.py
+    - scripts/lib/baseline_anchors_status.py
+    - scripts/lib/gpu_snapshot.py
+    - scripts/lib/home_gpus.py
+    - scripts/human_guidance_gate.py
+    - scripts/lib/human_guidance_gate.py
+    - scripts/lib/human_guidance_roadmap.py
+    - scripts/runtime-activity.py
+    - scripts/lib/runtime_activity.py
+    - scripts/journal_append.py
+  ledger_closure:
+    - scripts/check_round_ledger_closure.py
+    - scripts/lib/round_ledger_closure.py
+  # stamp-required ≡ train_runtime（governance-sync 写 version 前必齐；doctor sync_need_files）
+  train_runtime:
+    - scripts/lib/train_branch.py
+    - scripts/lib/train_branch_types.py
+    - scripts/lib/adapter_accept.py
+    - scripts/lib/framework_binding.py
+    - scripts/lib/smoke_metrics_gate.py
+    - scripts/lib/auto_mode.py
+    - scripts/lib/scenario_contract_guard.py
+    - scripts/lib/scan_cfg_path_fallback.py
+    - scripts/lib/scan_shared_context_contract.py
+    - scripts/lib/scan_abcde_manual_hygiene.py
+    - scripts/lib/check_env_import_classify.py
+    - scripts/lib/migrate_finalize_run_kwargs.py
+    - scripts/lib/migrate_wrap_train_loader.py
+    - scripts/lib/contract_test_signature.py
+    - scripts/lib/info_perm.py
+    - scripts/lib/home_gpus.py
+    - scripts/lib/governance_sync_manifest.yaml
+    - scripts/lib/governance_sync_manifest.py

@@ -1,0 +1,405 @@
+# 立项题库（机器可读题目注册表）v1
+#
+# 谁读：scripts/lib/init_answers.py（答案清单校验 / 锁文本渲染 / 题序）；Agent 走一问一答时按同一套 slug 推进。
+# 真源关系：题目的问话正文与六段工作表仍在 skills/maintainer/auto-nn-init/hard-gate-reference.md；
+#           本文件只登记「有哪些题、什么顺序、谁依赖谁、哪些题允许答案清单跳问、选项与锁模板」。
+#           题序（step.A / step.B）须与 reference「编号速查」一致（单测 test_init_answers.py 对照）。
+# 运行时（train / auto-run / doctor）不读本文件。
+#
+# 字段：
+#   slug            HARD-GATE 编号（唯一）
+#   key             人话键（答案清单里用）；aliases 为别名（含英文 slug 片段）；slug 本身与 slug 前缀（I1）也可作键
+#   theme           人话主题（进度抬头）
+#   entries         A=迁入(migrate) B=立项(build) U=二次(update)
+#   step            {A: n, B: n}；0 = 准备步；F1 不计步；update 15 步题序由 reference 定，清单只按 slug 匹配
+#   depends_on      题序依赖（答案清单只在依赖题已确认后才套用；顺序固定，故仅作提示）
+#   source_aligned  迁入时「推荐须跟源项目」的题：清单值与源码不一致须改回确认，不得静默跳问
+#   answers.skip_allowed  答案清单有合法值时是否允许不弹卡（v1 仅 8 题为 true）
+#   kind            choice（A/B/C…）| value（字段值）
+#   options         choice 题：选项键 → {label, value?, lock, requires?}
+#   fields          可填字段：{type: int|number|number_or_none|str|list|list_int, required?, default?, min?, help?}
+#   lock            value 题的锁模板（{field} 占位；列表以逗号连接；空 → none）
+
+version: 1
+
+entry_by_workflow:
+  build: B
+  migrate: A
+  update: U
+
+themes:
+  - 对齐理解
+  - 场景与数据
+  - 信息权限
+  - 旧资产清理
+  - 训练方式
+  - 主指标
+  - 实验目标
+  - 评估与成绩记录
+  - 运行设置
+  - 签字
+
+questions:
+  - slug: P0-project-brief
+    key: 对齐理解
+    aliases: [project_brief, 项目摘要]
+    theme: 对齐理解
+    entries: [A, B, U]
+    step: {A: 0, B: 0}
+    depends_on: []
+    answers: {skip_allowed: false, reason: 对齐理解必须现场确认（对象类型以读代码为准）}
+
+  - slug: D1-scenario-inventory
+    key: 场景清单
+    aliases: [scenario_inventory, 场景与起跑配置]
+    theme: 场景与数据
+    entries: [A, B, U]
+    step: {A: 1, B: 1}
+    depends_on: [P0-project-brief]
+    answers: {skip_allowed: false, reason: 清单表须现场确认}
+
+  - slug: D2-data-split
+    key: 数据划分
+    aliases: [data_split, 数据划分与终评]
+    theme: 场景与数据
+    entries: [A, B, U]
+    step: {A: 2, B: 2}
+    depends_on: [D1-scenario-inventory]
+    source_aligned: true
+    answers: {skip_allowed: false, reason: 划分默认仍问（1817 §7）}
+
+  - slug: I1-train-consumes
+    key: 训练许用材料
+    aliases: [train_consumes, 训练可以用哪些材料, 训练能用什么材料]
+    theme: 信息权限
+    entries: [A, B, U]
+    step: {A: 3, B: 3}
+    depends_on: [D2-data-split]
+    source_aligned: true
+    ask: 训练时哪些数据能碰、哪些只能等打分时才打开？
+    answers: {skip_allowed: true}
+    kind: choice
+    options:
+      A:
+        label: 全部数据都能训，没有只用来打分的部分
+        value: all
+        lock: "I1.CONSUMES=all; I1.EVAL_ONLY=[]; I1.STRICT=no"
+      B:
+        label: 只能用训练份；以下只用来打分
+        value: train_split_only
+        requires: [eval_only_assets]
+        lock: "I1.CONSUMES=train_split_only; I1.EVAL_ONLY=[{eval_only_assets}]; I1.READERS=[{eval_only_readers}]; I1.STRICT=no"
+      C:
+        label: 训练不读任何数据文件，起点和方程都是公式现算
+        value: no_files
+        lock: "I1.CONSUMES=no_files; I1.EVAL_ONLY=[{eval_only_assets}]; I1.READERS=[{eval_only_readers}]; I1.STRICT=yes"
+    fields:
+      eval_only_assets: {type: list, default: [], help: 只评资产——路径 glob 或 contract. 开头的读取函数名}
+      eval_only_readers: {type: list, default: [contract/test.py], help: 允许打开只评资产的合同文件（Agent 扫合同后请人确认）}
+
+  - slug: I2-official-path
+    key: 官方打分通道
+    aliases: [official_path, 官方分怎么算, 官方分路径]
+    theme: 信息权限
+    entries: [A, B, U]
+    step: {A: 4, B: 4}
+    depends_on: [D2-data-split, I1-train-consumes]
+    source_aligned: true
+    ask: 官方分必须走哪条路算出来？
+    answers: {skip_allowed: true}
+    kind: choice
+    options:
+      A:
+        label: 整网前向：模型看输入直接出结果
+        value: full_model
+        lock: "I2.PATH=full_model; I2.IMPL=none"
+      B:
+        label: 受限路径：官方分必须走规定手续
+        value: restricted
+        requires: [impl, rule]
+        lock: "I2.PATH=restricted; I2.IMPL={impl}; I2.RULE={rule}"
+      C:
+        label: 固定评测态：必须在指定状态下打分
+        value: eval_mode_locked
+        requires: [impl, rule]
+        lock: "I2.PATH=eval_mode_locked; I2.IMPL={impl}; I2.RULE={rule}"
+    fields:
+      impl: {type: str, default: "", help: contract/test.py 里 run() 必须调用的手续函数名}
+      rule: {type: str, default: "", help: 一句写清手续（写任务自己的规定，不要套别的课题）}
+
+  - slug: I3-other-info-rules
+    key: 其他信息规矩
+    aliases: [other_info_rules, 还有别的规矩吗, 其他规矩]
+    theme: 信息权限
+    entries: [A, B, U]
+    step: {A: 5, B: 5}
+    depends_on: [I1-train-consumes, I2-official-path]
+    ask: 除了训练材料与打分通道，还有没有别的信息不许乱流？
+    answers: {skip_allowed: true}
+    kind: choice
+    options:
+      none:
+        label: 均无
+        value: none
+        lock: "I3.RULES=none; I3.MACHINE=none"
+      list:
+        label: 逐条列出（机器只管训练 batch 键白名单，其余标「机器不管」）
+        value: list
+        requires: [rules]
+        lock: "I3.RULES=[{rules}]; I3.MACHINE=[batch_keys={train_batch_keys}]"
+    fields:
+      rules: {type: list, default: [], help: 逐条人话规则}
+      train_batch_keys: {type: list, default: [], help: 训练 batch 键白名单（机器可拦）；无则空}
+
+  - slug: D3-workspace-data
+    key: 训内数据处理
+    aliases: [workspace_data]
+    theme: 场景与数据
+    entries: [A, B, U]
+    step: {A: 6, B: 6}
+    depends_on: [D2-data-split, I1-train-consumes]
+    answers: {skip_allowed: false}
+
+  - slug: D4-repro-data
+    key: 复现数据
+    aliases: [repro_data]
+    theme: 场景与数据
+    entries: [A, B, U]
+    step: {A: 7, B: 7}
+    depends_on: [D3-workspace-data]
+    answers: {skip_allowed: false}
+
+  - slug: H1-legacy-artifacts
+    key: 旧成绩与产物
+    aliases: [legacy_artifacts, 旧台账]
+    theme: 旧资产清理
+    entries: [A, U]
+    step: {A: 8}
+    depends_on: [D4-repro-data]
+    answers: {skip_allowed: false}
+
+  - slug: H2-experience
+    key: 旧经验文档
+    aliases: [experience]
+    theme: 旧资产清理
+    entries: [A, U]
+    step: {A: 9}
+    depends_on: [H1-legacy-artifacts]
+    answers: {skip_allowed: false}
+
+  - slug: H3-agent-boundary
+    key: 旧文档硬规则
+    aliases: [agent_boundary, 旧README硬规则]
+    theme: 旧资产清理
+    entries: [A, U]
+    step: {A: 10}
+    depends_on: [H1-legacy-artifacts]
+    answers: {skip_allowed: false}
+
+  - slug: T1-loss-layers
+    key: 训练里什么能动
+    aliases: [loss_layers, 常见可试, data_loss, 场监督]
+    theme: 训练方式
+    entries: [A, B, U]
+    step: {A: 11, B: 8}
+    depends_on: [D2-data-split]
+    answers: {skip_allowed: false}
+    # 整题仍现场确认；confirm_only / 映射里可带 common_try.data_loss（yes=按钮开，缺省 no）
+    # 不另弹卡片。阶段 2 投影 INFO_PERM.enforce（开→no / 关→yes）。
+
+  - slug: T2-callchain
+    key: 调用链
+    aliases: [callchain]
+    theme: 训练方式
+    entries: [A, B, U]
+    step: {A: 12, B: 9}
+    depends_on: [T1-loss-layers]
+    source_aligned: true
+    answers: {skip_allowed: false}
+
+  - slug: E1-metrics
+    key: 主辅指标
+    aliases: [metrics, 主/辅指标]
+    theme: 主指标
+    entries: [A, B, U]
+    step: {A: 13, B: 10}
+    depends_on: [D2-data-split]
+    source_aligned: true
+    answers: {skip_allowed: false}
+
+  - slug: G1-experiment-mode
+    key: 实验模式
+    aliases: [experiment_mode, exploration_mode]
+    theme: 实验目标
+    entries: [A, B, U]
+    step: {A: 14, B: 11}
+    depends_on: [E1-metrics]
+    ask: 这轮主攻把分做高，还是也要逼 Agent 试新方法？
+    answers: {skip_allowed: true}
+    kind: choice
+    options:
+      A: {label: careful 照手册原样跑、啥都不动, value: careful, lock: "G1.MODE=careful"}
+      B: {label: optimize 标准干活、追指标, value: optimize, lock: "G1.MODE=optimize"}
+      C: {label: innovate 撞墙翻同行代码, value: innovate, lock: "G1.MODE=innovate"}
+      D: {label: aggressive 全查全试、全力冲, value: aggressive, lock: "G1.MODE=aggressive"}
+      E: {label: explore 纯摸底、不被指标卡, value: explore, lock: "G1.MODE=explore"}
+      F: {label: auto 放手让系统撞墙自动升档, value: auto, lock: "G1.MODE=auto"}
+
+  - slug: G2-goal-value
+    key: 主指标目标值
+    aliases: [goal_value, 主指标目标]
+    theme: 实验目标
+    entries: [A, B, U]
+    step: {A: 15, B: 12}
+    depends_on: [G1-experiment-mode]
+    ask: 主分要到多少算「最终达标、自动停」？
+    answers: {skip_allowed: true}
+    kind: value
+    fields:
+      value: {type: number_or_none, required: true, help: 数值；none = 暂不设}
+      floor: {type: number_or_none, default: none, help: explore 护栏（主指标不低于）}
+    lock: "G2.GOAL={value}; G2.FLOOR={floor}"
+
+  - slug: E2-metric-tier
+    key: 指标列分级
+    aliases: [metric_tier]
+    theme: 评估与成绩记录
+    entries: [A, B, U]
+    step: {A: 16, B: 13}
+    depends_on: [E1-metrics]
+    answers: {skip_allowed: false}
+
+  - slug: E3-official-test
+    key: 官方终评
+    aliases: [official_test]
+    theme: 评估与成绩记录
+    entries: [A, B, U]
+    step: {A: 17, B: 14}
+    depends_on: [D2-data-split, I2-official-path]
+    source_aligned: true
+    answers: {skip_allowed: false, reason: 官方终评默认仍问（1817 §7）}
+
+  - slug: E4-train-eval
+    key: 训内评估
+    aliases: [train_eval]
+    theme: 评估与成绩记录
+    entries: [A, B, U]
+    step: {A: 18, B: 15}
+    depends_on: [T2-callchain, D2-data-split]
+    source_aligned: true
+    answers: {skip_allowed: false, reason: 训内评估默认仍问（1817 §7）}
+
+  - slug: E5-tsv-columns
+    key: 记录表列
+    aliases: [tsv_columns]
+    theme: 评估与成绩记录
+    entries: [A, B, U]
+    step: {A: 19, B: 16}
+    depends_on: [E2-metric-tier]
+    answers: {skip_allowed: false}
+
+  - slug: E6-scenario
+    key: 场景探索方案
+    aliases: [scenario]
+    theme: 评估与成绩记录
+    entries: [A, B, U]
+    step: {A: 20, B: 17}
+    depends_on: [G1-experiment-mode, G2-goal-value, D1-scenario-inventory]
+    answers: {skip_allowed: false}
+
+  - slug: E7-run-context
+    key: 运行参数进表
+    aliases: [run_context]
+    theme: 评估与成绩记录
+    entries: [A, B, U]
+    step: {A: 21, B: 18}
+    depends_on: [E5-tsv-columns]
+    answers: {skip_allowed: false}
+
+  - slug: E8-checkpoint
+    key: 模型存档
+    aliases: [checkpoint]
+    theme: 评估与成绩记录
+    entries: [A, B, U]
+    step: {A: 22, B: 19}
+    depends_on: [T2-callchain]
+    answers: {skip_allowed: false}
+
+  - slug: E9-keep
+    key: 怎么算更好
+    aliases: [keep, 单次进步线]
+    theme: 评估与成绩记录
+    entries: [A, B, U]
+    step: {A: 23, B: 20}
+    depends_on: [E1-metrics, E8-checkpoint]
+    answers: {skip_allowed: false, reason: 须按指标族给 ≥3 档现场选；禁默认 0.5%}
+
+  - slug: O1-time-budget
+    key: 训练墙钟
+    aliases: [time_budget, 单次训练最长多久]
+    theme: 运行设置
+    entries: [A, B, U]
+    step: {A: 24, B: 21}
+    depends_on: []
+    ask: 单次训练最多跑多少墙钟秒（0 = 不限）？
+    answers: {skip_allowed: true}
+    kind: value
+    fields:
+      seconds: {type: int, required: true, min: 0}
+    lock: "O1.TIME_BUDGET={seconds}"
+
+  - slug: O2-gpus-parallel
+    key: GPU与并行
+    aliases: [gpus_parallel, GPU 与并行, 机器占用]
+    theme: 运行设置
+    entries: [A, B, U]
+    step: {A: 25, B: 22}
+    depends_on: [O1-time-budget]
+    ask: 用哪些 GPU、单轮最多同时跑几个训练？
+    answers: {skip_allowed: true}
+    kind: value
+    fields:
+      gpus: {type: list_int, required: true, help: "显式白名单；无 GPU 写 []"}
+      max_parallel: {type: int, required: true, min: 1}
+    lock: "O2.GPUS=[{gpus}]; O2.MAX_PARALLEL={max_parallel}"
+
+  - slug: O3-baseline-anchors
+    key: 起步尺子
+    aliases: [baseline_anchors]
+    theme: 运行设置
+    entries: [A, B, U]
+    step: {A: 26, B: 23}
+    depends_on: [G1-experiment-mode, E6-scenario]
+    answers: {skip_allowed: false, reason: 须会前找对照并核测试条件}
+
+  - slug: O4-repro-determinism
+    key: 复现随机性
+    aliases: [repro_determinism, 随机种子]
+    theme: 运行设置
+    entries: [A, B, U]
+    step: {A: 27, B: 24}
+    depends_on: [D4-repro-data]
+    ask: 随机种子定多少？
+    answers: {skip_allowed: true}
+    kind: value
+    fields:
+      seed: {type: int, required: true}
+    lock: "O4.SEED={seed}"
+
+  - slug: F1-contract
+    key: 口径汇总
+    aliases: [contract, 签字]
+    theme: 签字
+    entries: [A, B, U]
+    step: {}
+    depends_on: []
+    answers: {skip_allowed: false, reason: 汇总签字永远现场}
+
+# 清单内可判的自相矛盾（规则体在 scripts/lib/init_answers.py，按 id 取消息）
+contradictions:
+  - id: X-G1G2
+    message: 探索摸底档（G1=E）不设数值目标，只能设护栏 floor；请把主指标目标值改为 none 或换实验模式
+  - id: X-O2
+    message: 并行数 max_parallel 不能超过 GPU 白名单张数（gpus 非空时）
+  - id: C-DL1
+    message: 常见可试 data-loss 开着时，训练必须能用场（训练许用材料不能是「不读任何数据文件」）

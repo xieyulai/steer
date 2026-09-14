@@ -1,0 +1,15 @@
+# Framework documentation registry (link_only — no HTTP fetch here).
+# PyTorch nn symbols pinned to docs 2.12 (stable shell pages are unsuitable).
+symbols:
+  CrossEntropyLoss:
+    framework: pytorch
+    url_template: "https://pytorch.org/docs/2.12/generated/torch.nn.CrossEntropyLoss.html"
+  MSELoss:
+    framework: pytorch
+    url_template: "https://pytorch.org/docs/2.12/generated/torch.nn.MSELoss.html"
+  timm:
+    framework: timm
+    url_template: "https://huggingface.co/docs/timm/main/en/models"
+  torchvision:
+    framework: torchvision
+    url_template: "https://pytorch.org/vision/stable/index.html"

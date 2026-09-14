@@ -1,0 +1,58 @@
+# nn-config.yaml — 项目根全局配置（v1.4.4 Phase 2 collapsed）
+#
+# 谁在读：load_nn_config()（所有 reader 经此；直接 yaml.safe_load 仅限 auto-nn-run.sh 5 个直读字段）
+# 优先级：环境变量 NN_* 与 CLI > 本文件 > 代码默认值 > preset 默认
+# 与 contract 的关系：keep 段是唯一 keep 口径来源（contract 不持 keep_threshold；exploration_mode 经 presets.py 定 primary_delta）
+# 何时可改：立项 / 迁移 / 重开（NN_RELAUNCH=1）；常规迭代请勿修改（与 contract 同规）
+#
+# ── 折叠规则（Phase 2 collapse）───────────────────────────────────
+# keep/reflect/compress/context/analyse/safety/innovation/
+# tier_attestation/gpu/training/external/scenario 不在本文件。
+# 探索/品质/巡检按 exploration_mode（6 档）preset 自动注入。
+# 例外：goal + agent.scenario_* 给人看——立项写入达标分数、主指标、默认场景。
+# target 为空则自动多轮跑满 N；scenario_default 空则体检不通过。
+# preset 列表：careful | optimize | innovate | aggressive | explore | auto
+# 默认 optimize；yaml 显式写的字段 wins；缺字段从 preset 补。
+# preset 真源：template/package/scripts/lib/presets.py（default_for_mode）
+
+# ── 范式 ────────────────────────────────────────────────────
+profile: supervised                     # supervised | rl | physical
+
+# ── 算力与设备 ──────────────────────────────────────────────
+gpus: []                                # 项目卡名单；[]=跟本机走。开训另读 ~/.gpus（有文件才限制占用）
+max_parallel: 1                         # 单轮并行槽数上限
+device: auto                            # auto | cuda | cpu
+
+# ── 训练运行时 ──────────────────────────────────────────────
+time_budget: 3600                       # 秒；0=不限
+seed: 42                                # 全局种子（O4 须确认）
+deterministic: true                     # cudnn deterministic
+checkpoint: best                        # best | last | none
+
+# ── 探索策略 ────────────────────────────────────────────────
+exploration_mode: optimize   # careful|optimize|innovate|aggressive|explore|auto —— 唯一探索旋钮（6 档 = 预定组合）
+                             # careful=稳/optimize=冲指标(默认)/innovate=指标+深方法/
+                             # aggressive=穷尽搜/explore=摸底不停批/auto=撞墙自动升档
+                             # 选档即定 keep/reflect/查论文/起手Tier/运行时行为；叶子字段可显式覆盖
+# explore:                   # 仅 exploration_mode: explore 时生效
+#   metric_floor: null       # 主指标底线（破线 WARN 不停）
+#   keep_on: [first_in_cell, attested_novel, scenario_debut]
+#   reflect_gate_coverage_stall: 3
+# auto:                      # 仅 exploration_mode: auto 时生效
+#   start_mode: optimize
+#   promote_threshold: 5
+#   max_mode: aggressive
+
+# ── 达标即停 + 默认场景（立项写入；不要手改）────────────────
+goal:
+  target: null                          # 主分到多少算达标停。立项必须写成数字；空 = 跑满轮数
+  metric: null                          # 盯哪一个主指标；空 = 用合同里的主指标名
+  op: null                              # '>=' 或 '<='；空 = 按合同方向（越大越好 / 越小越好）
+  policy: focus                         # focus=只盯主场景停 | strict=有目标的场景全达标才停
+agent:
+  scenario_default: ""                 # 默认盯哪一套官方设定（须在场景清单里）；空则体检不通过
+  # scenario_active: ""                 # 多套一起搜时的清单，逗号分隔；只有一套可省略
+
+# ── 早停（其余 keep/reflect/... 由 preset 注入）─────────────
+early_stop:
+  patience: 0                           # 0=关闭

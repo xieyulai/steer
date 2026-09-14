@@ -1,0 +1,241 @@
+# Profile definitions for auto-nn-experiment template
+# 范式唯一配置源（无 profiles/ 目录）；软性约束，供 Agent/人立项时对照
+# new-project.sh --profile <name> 写入 nn-config.yaml 的 profile 字段，不复制额外骨架
+#
+# 守门只认「方法」不认「文件名」：
+#   - contract / workspace 列出的是 *方法名*（在 Contract / Workspace 类上必须存在），由 G-范式 / G-门面 校验。
+#   - recommended_files 仅是 *起步命名建议*（new-project.sh 据此生成 workspace/RECOMMENDED_LAYOUT.md）；
+#     **文件名完全自由**——model.py 叫 models/、loss.py 并进 train_loop.py 等都不影响任何 gate。
+#   - 唯一与「能力」相关的硬性约束（非文件名）见各 profile 的 required_capabilities。
+
+semantics:
+  ws.evaluate:
+    when: "由 HARD-GATE E4_训内节奏 决定：A=每圈评 / B=训中不评（仅训末 contract.test）/ C=跳着评；默认 supervised 每 epoch"
+    purpose: "训练过程监控（val loss / proxy metric）；**可调用** contract.test() 复用台账口径，不得承载与 test 平行的完整官方实现"
+    caller: train.py
+    cadence_options:
+      every_loop: "每个 epoch/segment/stage 后 evaluate（E4_训内节奏=A）"
+      test_only: "循环内不 evaluate；仅训末 contract.test（E4_训内节奏=B）"
+      sparse: "按 F1 口径合同表触发 evaluate（E4_训内节奏=C）；supervised 推荐 EVAL_START_FRAC=0.2（最后约80% epoch）"
+  contract.test:
+    when: "finalize_run 阶段"
+    purpose: "官方台账评估 → 写入当次 `exp_dir/results.json`；**test 在 contract 内自主实现**（数据集、eval 模式、指标计算）；**禁止**调用 ws.evaluate()"
+    caller: "train.py（ExperimentBase.finalize_run / finalize_round 经 contract 实例）"
+    authority: "contract.test 是唯一实现；ws.evaluate 可调用 test 复用，不可反向（G-评估 硬失败）"
+  test_context_keys:
+    rl:
+      - eval_perf_model_mode
+      - n_episodes
+      - benchmark_jsonl
+      - eval_k_neighbors
+    supervised:
+      - official_eval_loader
+    physical:
+      - eval_metric_mode
+  train_py:
+    rule: "禁止 from workspace.<submodule> import；只调 ws.* / contract.*"
+  train_step_one_loop:
+    note: "澄清 T2 / 迁后改 train.py 时须先定「一圈」语义；禁止把 supervised 的 for-epoch 模板生套到 rl/physical"
+    clarify_must_state:
+      - "外层循环：文件 + 变量 + 终止条件（epoch / segment / stage）"
+      - "一圈 train_step：本圈含几次 optimizer step / learn(timesteps) / adam_steps"
+      - "训内 evaluate：每圈 / 跳着 / 仅训末（见 E4）"
+      - "多阶段：Adam/LBFGS/预热 各占几圈、是否每圈重采样 collocation"
+    supervised:
+      outer_loop: "train.py: for epoch in 1..EPOCHS"
+      one_loop: "ws.train_step = 遍历 DataLoader 一次（1 epoch = 全训练集一轮 mini-batch 更新）"
+      epoch_param: "epoch = 当前 epoch 序号（1-based）"
+      anti_patterns:
+        - "禁止 train_step 内再套 for epoch..EPOCHS 全量训练（与 train.py 外循环双重）"
+        - "禁止 train_step 一次调用跑完本应多 epoch 的 schedule"
+    rl:
+      outer_loop: "train.py: for segment .. 或 ws.run_training(total_timesteps) facade"
+      one_loop: "ws.train_step = model.learn(segment_timesteps) 或等价一段 env 交互"
+      epoch_param: "epoch 参数 = segment 序号，不是 supervised 的 epoch"
+      anti_patterns:
+        - "禁止 segment 循环 × learn(total_timesteps)（段数 × 总步数）"
+        - "run_training facade 须在 F1 写明 segment 预算在 workspace 内如何切分"
+    physical:
+      outer_loop: "train.py: for stage in [adam, lbfgs, …] — 每阶段通常 1 次 train_step（非 supervised 式千次 epoch）"
+      one_loop: "ws.train_step = 本 stage 完整优化（如 adam_steps 次 mini-batch 或 lbfgs_epochs 次 closure）；collocation 在本圈初或圈内按设计重采样"
+      epoch_param: "epoch/stage 参数 = 阶段序号；勿与 Adam step 总数混名"
+      anti_patterns:
+        - "禁止复制 supervised：for i in 1..ADAM_EPOCHS 且 train_step 内已执行完整 adam_steps+LBFGS（训练量 × 外循环次数）"
+        - "禁止同一 cfg 键（如 ADAM_EPOCHS）在 train.py 表示外循环次数、在 workspace 表示 Adam step 总数"
+        - "Adam 与 LBFGS 应分两 stage/两次 train_step；禁止每个 Adam「圈」都跑完整 LBFGS"
+        - "steps/epochs 命名须与参考实现一致：参考为 total steps 时勿用 --adam-epochs 表达"
+      canonical_pinn_example: "train.py: train_step(phase=adam) 一次 → train_step(phase=lbfgs) 一次 → contract.test"
+  scenario_layers:
+    note: "场景四层：S_data（数据/终评）× S_method（方法/架构/融合）× S_run（超参）+ A_explore（Agent 在 S_method 子集内轮换的 ≤1 维）"
+    core_principle: "场景内的东西是可以比的；场景间的东西是不可比的"
+    init_guidance:
+      question: "你想比较什么？"
+      examples:
+        - "比较不同方法在同一数据集上的表现 → 场景 = 数据集+任务配置"
+        - "比较同一方法在不同数据集上的泛化 → 场景 = 数据集"
+        - "比较不同超参配置 → 场景 = 方法+数据集"
+      flexible: "场景维度由用户定义，不强制规定；核心是确保场景内可比"
+    S_data:
+      meaning: "数据集 + 任务配置；决定「在哪组数据上评测」"
+      scenario_axis: "由用户定义（如 dataset+task_config、dataset、method+dataset）"
+      example: "seq-cifar10_5tasks = 场景 ID，所有方法在此场景下可比"
+    S_method:
+      meaning: "决定实验「是哪一种方法」的档位；与数据集正交。多种方法不得压成一行 default"
+      discovery_scan:
+        - "CLI argparse：model / adapter / flow / mode choices"
+        - "多套模型实现（adapter、backbone、fusion 变体）"
+        - "scripts/run、实验名、旧台账首列：命名前缀分族"
+        - "README/EXPERIENCE：主研究 vs baseline 对照"
+      ledger: "方法绑定键须进 experiment 名或 ledger_context_keys（E7），禁止仅口头"
+    explore_vs_reference:
+      meaning: "区分 Agent 自动搜索的方法 vs 人工指定的参考基线"
+      explore: "Agent 允许改动的 S_method 子集（或该族内超参）；自动搜索的新方法"
+      reference: "对照 baseline；Agent 探索=no；KEEP 仅池内互比；复现已有论文/方法"
+      init_interaction: "init 时须问用户：哪些方法是 reference，哪些是 automatic"
+  t1_loss_layers:
+    note: "F1 五类：硬约束 / 允许追加 / 允许替换 / 可调 / 技巧；硬约束≠禁止换算法"
+    allow_replace_algorithm:
+      rl: "允许替换=是时，learner 族可换（SAC/CQL/…），contract.test 不变；KEEP 按 algorithm substr 分池"
+  preflight:
+    note: "experiment.preflight_check 不按 profile 分支；差异在 train.py 编排（见 PROTOCOL §3.0.1）"
+    supervised: "preflight_check(learner, loss_fn, finalize_fn) → 静态守门 OK + loss OK；smoke 走真数据短跑 + TimeGuard 墙钟（NN_TIME_BUDGET），无 dummy 张量"
+    rl: "preflight_check() 无 learner → 静态守门 OK；ws.preflight_env_check() → env 一步；smoke 走真数据短跑 + TimeGuard 墙钟"
+    physical: "同 supervised 或项目 README 约定；§5 见 smoke-check.sh（通用墙钟）"
+
+profiles:
+  supervised:
+    description: "图像分类、回归、时序预测"
+    default_watchlist:
+      - LR
+      - BATCH_SIZE
+      - WEIGHT_DECAY
+      - OPTIMIZER
+      - EPOCHS
+      - baseline_tag
+    dependencies: {}
+    contract:
+      - metric_keys
+      - auxiliary_keys
+      - keep_threshold
+      - history_experiment_substr
+      - prepare_data
+      - test
+      - should_keep
+    workspace:
+      - build_learner
+      - build_objective
+      - train_step
+      - predict
+      - evaluate
+    workspace_forbidden:
+      - prepare_data
+    recommended_files:    # 仅命名建议；文件名自由（见文件头注释）
+      model: workspace/model.py
+      data: workspace/data_process.py
+      loss: workspace/loss.py
+      train: workspace/train_loop.py
+      infer: workspace/infer.py
+    notes:
+      - "prepare_data 归 contract"
+      - "test 在 held-out / 官方 test set；可与 epoch val 用不同 loader"
+      - "T2 一圈 = 1 epoch（见 semantics.train_step_one_loop.supervised）；train_step 内勿再套 epoch 外循环"
+      - "train.py 禁止直接 import workspace 子模块"
+
+  rl:
+    description: "强化学习、离线 RL"
+    default_watchlist:
+      - LR
+      - GAMMA
+      - BATCH_SIZE
+      - REPLAY_BUFFER_SIZE
+      - baseline_tag
+    dependencies:
+      gymnasium: "^0.29.1"
+      stable-baselines3: "^2.3.2"
+      scikit-learn: "^1.5.0"
+      numpy: "^1.26.0"
+      scipy: "^1.11.0"
+      cloudpickle: "^3.0.0"
+    contract:
+      - metric_keys
+      - auxiliary_keys
+      - keep_threshold
+      - history_experiment_substr
+      - prepare_data
+      - test
+      - should_keep
+    workspace:
+      - build_learner
+      - build_objective
+      - train_step
+      - predict
+      - evaluate
+      - preflight_env_check
+    workspace_forbidden:
+      - prepare_data
+    recommended_files:    # 仅命名建议；文件名自由（见文件头注释）
+      model: workspace/model.py
+      data: workspace/data_process.py
+      infer: workspace/infer.py    # 推荐放 make_eval_env 的位置；放别处也可（守门按方法定位）
+    required_capabilities:
+      # 非文件名约束：若 workspace 提供 eval-env 工厂，函数须叫 make_eval_env 且 mode 优先用参数。
+      # 守门（G-评估 A5 / nn-doctor rl_make_eval_env）扫 workspace/**.py 按函数名定位，不绑定 infer.py。
+      make_eval_env: "def make_eval_env(..., mode: str | None = None)；mode 由 contract.test 传入，勿仅靠 PERF_MODEL_MODE 环境常量"
+    notes:
+      - "test 归 contract（必须自主实现）；在 contract/test.run 内写死 mode='knn' 等不变量；禁止 test→ws.evaluate"
+      - "ws.evaluate 用于 epoch 监控，可调用 contract.test() 复用口径"
+      - "prepare_data 归 contract（写 dataset_path 等；与 test 同侧、迁后钉死；常规迭代禁止改 contract 数据段）"
+      - "offline_knn/ 等环境子包在 workspace/ 内；train.py 通过 ws 门面间接使用"
+      - "train_step 的 epoch 参数在 RL 中语义为 timestep segment 序号"
+      - "train.py 按 segment 循环调 train_step，每段 model.learn(segment_timesteps)"
+      - "T2 一圈 = 一段 learn（见 semantics.train_step_one_loop.rl）；禁止 segment × total_timesteps 双重放量"
+      - "preflight: contract.preflight_check()（静态守门）+ ws.preflight_env_check()（env 一步）；smoke 走真数据短跑 + TimeGuard 墙钟（NN_TIME_BUDGET），无 dummy；§5 用 scripts/smoke-check.sh"
+      - "train.py 禁止直接 import workspace 子模块"
+
+  physical:
+    description: "物理约束学习（含 PINN 等）"
+    default_watchlist:
+      - LR
+      - DT
+      - PHYSICS_SCALE
+      - baseline_tag
+    dependencies: {}
+    contract:
+      - metric_keys
+      - auxiliary_keys
+      - keep_threshold
+      - history_experiment_substr
+      - prepare_data
+      - test
+      - should_keep
+    workspace:
+      - build_learner
+      - build_objective
+      - train_step
+      - predict
+      - evaluate
+    recommended_files:    # 仅命名建议；文件名自由（见文件头注释）
+      model: workspace/model.py
+      pde: workspace/data_process.py
+      infer: workspace/infer.py
+    notes:
+      - "prepare_data 归 contract（train.py 入口）；通常返回 (None, None)，物理采样在 train_step 内部进行"
+      - "D2 只锁划分语义（无 train/val 文件、SSFM 终评）；SAMPLING_TUNABLE=yes 时 workspace 配点/importance 可调"
+      - "ws.evaluate 返回 proxy（如 val_phy_loss）；contract.test 算真实 rel_l2"
+      - "多阶段训练在 train.py 编排，通过 ws wrapper 调用（Adam/L-BFGS 等分 stage，每 stage 通常 1 次 train_step）"
+      - "T2 一圈 = 本 stage 的完整优化段（见 semantics.train_step_one_loop.physical）；勿套用 supervised 的 for-epoch 千次循环"
+      - "反模式：train.py 外循环 × train_step 内全量 adam_steps+LBFGS；cfg 键 epochs/steps 内外不同义"
+      - "澄清时对照参考实现墙钟：若参考为 N total steps，迁后外循环次数 × 内层 step 数须与之相当"
+      - "train.py 禁止直接 import workspace 子模块"
+
+reflect_diagnostics:
+  supervised:
+    suggest_when_plateau:
+      - { kind: curve, id: train_val_curve, desc: "train/val vs epoch" }
+  rl:
+    suggest_when_plateau:
+      - { kind: curve, id: episode_return, desc: "segment return" }
+  physical:
+    suggest_when_plateau:
+      - { kind: spatial, id: error_field, desc: "误差沿域坐标" }
+      - { kind: curve, id: proxy_vs_official, desc: "proxy 趋势 vs 官方 test" }

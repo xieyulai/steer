@@ -1,0 +1,50 @@
+# v1：仅 1 组并联，入口 A；验证无误后再扩表
+version: 1
+
+defaults:
+  mode: single          # single | parallel_if_eligible
+  max_parallel: 2
+
+bundles:
+  - id: bundle-h-cleanup
+    theme: 旧资产清理
+    entry: [A]
+    requires_confirmed: [H1-legacy-artifacts]
+    slugs:
+      - slug: H2-experience
+        step: 9      # 2026-09：I1–I3 入题后 6→9
+      - slug: H3-agent-boundary
+        step: 10     # 7→10
+    parallel_eligible: true
+    rationale: |
+      旧 EXPERIENCE 取舍与 README 硬约束边界互不锁定；
+      H1 已钉台账/产物策略后，两题无交叉依赖。
+
+must_individual:  # 永不并联（与 reference「仍须单独问」对齐）
+  - P0-project-brief
+  - D1-scenario-inventory
+  - D2-data-split
+  - I1-train-consumes     # 信息权限三问：逐题单独问（源对齐题 / 依赖 D2）
+  - I2-official-path
+  - I3-other-info-rules
+  - D3-workspace-data
+  - D4-repro-data
+  - H1-legacy-artifacts
+  - T1-loss-layers
+  - T2-callchain
+  - E1-metrics
+  - G1-experiment-mode
+  - G2-goal-value
+  - E2-metric-tier
+  - E3-official-test
+  - E4-train-eval
+  - E5-tsv-columns
+  - E6-scenario
+  - E7-run-context
+  - E8-checkpoint
+  - E9-keep
+  - O1-time-budget
+  - O2-gpus-parallel
+  - O3-baseline-anchors   # was O3-exploration
+  - O4-repro-determinism
+  - F1-contract

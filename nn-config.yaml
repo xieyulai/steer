@@ -1,0 +1,264 @@
+# nn-config.yaml — 项目根全局配置（替代已废弃的 NN_PROFILE）
+#
+# 谁在读：experiment.py（profile / time_budget / seed / keep）、auto-nn-run.sh（GPU / Agent prompt）
+# 优先级：环境变量 NN_* 与 CLI > 本文件 > 代码默认值
+# 与 contract 的关系：contract.keep_threshold 若非空 dict，会覆盖下方 keep 段；立项时可设 contract={} 以启用 yaml
+# 何时可改：立项 / 迁移 / 重开（NN_RELAUNCH=1）；常规 Agent 迭代请勿修改（与 contract 同规）
+
+# ── 范式 ─────────────────────────────────────────────────────────────
+# 对应 profiles.yaml 中的 profile 名；preflight G-范式 会检查与方法清单是否一致
+profile: supervised          # supervised | rl | physical
+
+# ── 算力与设备 ───────────────────────────────────────────────────────
+gpus: []                     # 可用 GPU 白名单（索引列表）；[] 表示 new-project 时自动检测本机全部 GPU
+max_parallel: 1              # 单轮最多并行槽数（≤ len(gpus)）；Agent 可选用多卡 sweep，是否并行自行判断；>1 时训末须 finalize-round
+device: auto                 # auto | cuda | cpu
+
+# ── 训练运行时 ─────────────────────────────────────────────────────────
+time_budget: 3600            # 墙钟秒数（TimeGuard）；0=不限；可被 NN_TIME_BUDGET 覆盖
+seed: 42                     # 全局随机种子默认；可被 NN_SEED 覆盖（HARD-GATE O4 须与用户确认基线，如 99）
+deterministic: true          # cudnn.deterministic=True, benchmark=False; NN_DETERMINISTIC 可覆盖
+# 复现：contract/runtime.py REPRO_ENV_KEYS + finalize → config.json `_repro`（见 PROTOCOL §2.4）
+
+checkpoint: best             # best | last | none — 权重写入 exp_dir/best_model.pt（KEEP 复制此文件）
+                             # best=训内 evaluate 最优（无则训末最后一轮）; last=训末最后一轮; none=不存
+                             # 可用 NN_CHECKPOINT 覆盖；.pt 内 train_cfg 含完整训练超参
+
+# ── 训内早停（evaluate 主指标 patience；与 checkpoint:best 配套可避免 best 后空转）──
+early_stop:
+  patience: 0                # 0=关闭；>0 = 连续 N 次 evaluate 无提升则停（指标=contract.metric_key）
+                             # 可用 NN_EARLY_STOP_PATIENCE 覆盖；COAL 等高 epoch 项目可在本文件写 50
+
+# ── KEEP / DISCARD（finalize_round → should_keep，对照 _runs/results.tsv）──
+# 仅当 contract.keep_threshold 为空 {} 时，以下字段生效
+keep:
+  improve_mode: any_primary  # 默认：contract.primary_metric_keys 任一相对达标即 KEEP
+                             # primary | any_metric | all_primary 见 PROTOCOL §2.1
+  mode: relative             # 相对历史最佳的改善比例（与指标量纲无关）
+  primary_delta: 0.005       # 0.005 = 相对改善 0.5%
+  near_best_abs: 0.0         # 默认关闭绝对容差；仅用 relative + primary_delta
+
+# === agent.* 已迁移到以下顶层 block（值复制自 agent.*；agent 块保留为降级别名）===
+# 映射权威：scripts/lib/nn_config.py AGENT_TO_TOP_KEYS。下次 governance-sync 自动清 agent.* 别名。
+
+reflect:
+  interval: 1                # 自动 reflect 上限频率：距上次 reflect ≥N 轮且满足门禁 R2–R6 才可跑（0=关闭；非每轮必跑）
+  force: false               # true = 每实验轮结束强制 reflect（R1；仍须 reflect_interval>0）
+  skip: false                # true = 关闭自动 reflect（仍可 reflect.py / auto-nn-run.sh reflect）
+  evidence_recent: 3         # REB Phase 0.5：台账 recent N 行（skip preflight_check）
+  evidence_attested_failures: 3   # REB Phase 0.5b：DISCARD+attested 进 ETS 上限
+  evidence_include_flagged: true
+  evidence_log_tail_lines: 200
+  evidence_snapshot_diff: true
+  evidence_git_log: true     # REB：读 git log（keeper..run，scope train.py/workspace）
+  evidence_git_log_max: 12
+  # ── Reflect insight 增强（P1-P4 全部加完后引入；任意可关）───────────
+  diversity_check:
+    enabled: true             # P1 fingerprint 跨轮同质化
+    window: 5                 # 滑动窗口
+    primary_repeat_threshold: 0.6  # primary swap 重复率 ≥ 60% 触发 downshift
+    tier_repeat_threshold: 0.8    # Tier 重复率 ≥ 80% 触发 downshift
+  leader_attribution:
+    enabled: true             # P3 leader vs current 差距归因
+  tam_reconcile:
+    enabled: true             # P4 EXPERIENCE ↔ TAM 一致性
+  external:
+    sources: [arxiv, scholar, serper, github]  # P2 撞墙时全跑
+    plateau_force_all_sources: true            # plateau_active=True 强制全源
+
+goal:
+  value: null                # 全局默认目标；null=未配。未单独写的场景继承此值
+  metric: null               # 用哪个指标当目标；null=默认 contract.metric_key（focus 主指标）
+  op: null                   # 比较方向 >= | <=；null=按 metric_direction（maximize→>=，minimize→<=）
+  stop_mode: focus_only      # focus_only=只盯主场景停批 | all_in_scope=active/清单内有 goal 的全达标才停
+  scenario_goals: {}         # 按场景覆盖，如 "128b": 0.75；null 值=该场景豁免 goal
+
+exploration:
+  mode: conservative         # 起手 Tier（非锁定；撞墙见 plateau_rounds + EXPERIENCE「Tier 状态」表升档）
+                             # conservative|balanced|inductive|aggressive
+                             # conservative → A（标量/日程）  balanced → B（模型/表示）
+                             # inductive → C（优化目标：改 workspace loss/reward/正则）  aggressive → D（数据/分布：课程、采样逻辑）
+                             # Tier E = 改题/评估（非本字段）；更长训练/OOM 归 A 或 D-工程，不是 E。见 EXPERIENCE.md#tier-ladder
+  objective_mode: optimize   # optimize（默认）| explore（opt-in 探索期；迁移完成后再开）
+                             # explore:                 # objective_mode=explore 时可选
+                             #   metric_floor: null      # explore 专用：主指标底线（破线 WARN，不硬停 loop）
+                             #   keep_on: [first_in_cell, attested_novel, scenario_debut]
+                             #   reflect_gate_coverage_stall: 3
+
+external:
+  enabled: true
+  task_domain: ""            # 外部论文检索任务域（1 行）；空则读 README 首行
+  max_http_per_reflect: 6
+  paper_hits_default: 3
+  paper_hits_deepen: 5
+  pdf_enabled: true
+  serper_key_env: SERPER_API_KEY
+
+innovation:
+  audit_enabled: true        # 创新维（routine / extend / novel）配置；与 A–E 流程维正交。
+                             # routine=生态现成；extend=论文/成熟实现；novel=研究性自创。
+                             # reflect 轮末会跑轻量 audit，仅 WARN。
+  fingerprint_enabled: true
+  fingerprint_authoritative: true
+  # innovation_routine_hints: []  # 项目额外 hints（模块名、正则等），会与默认合并
+
+tier_attestation:
+  enabled: true
+  window: 12
+  exhaust_min_attempts: 2
+
+gpu:
+  mem_reserve_gb: 2.0        # 共享卡预留显存（GB）；headroom 须 ≥ reserve + estimated
+  estimated_mem_gb: 4.0      # 单槽 train.py 预估显存（GB）；OOM 时调大或降 max_parallel
+  exclusive_mem_ratio: 0.25  # mem_used/total ≤ 此值且 util 低 → exclusive（近空独占）
+  exclusive_util_max: 10
+  shareable_mem_ratio: 0.70  # 非 busy 且 headroom 够 → shareable（可同卡插队）
+  shareable_util_max: 50
+  busy_mem_ratio: 0.85       # mem 或 util 超阈 → busy（勿加任务）
+  busy_util_min: 80
+  colocate_on_single: true   # gpus 白名单仅 1 卡时允许多槽同卡（显存够）
+
+training:
+  train_poll_interval_sec: 300  # 后台训练时 wait-train.sh 两次检查间隔（秒）；可用 NN_TRAIN_POLL_INTERVAL_SEC 覆盖
+
+context:
+  injection: full            # full=每轮注入 RUN CONTEXT（brief/keeper/MA-1/journal/env）；off=调试关闭
+  journal_max_entries: 15    # Run Context 注入 journal entries 尾行数
+  recent_rows: 5             # Run Context 近窗 TSV 行数（1–10；事实陈述，非 stage）
+  language: auto             # Agent 回答语种（仅影响 Agent text 块；模板脚本 stderr / HUMAN_GUIDANCE 仍为英文）
+                             # 注入到 RUN CONTEXT 顶部作为行为提示；支持任意字符串。常用值:
+                             #   "中文" / "English" / "日本語" / "auto" (auto=跟随用户 HUMAN_GUIDANCE 语种，未配置时不提示)
+
+analyse:
+  recent_rows: 10            # MA-2：focus 场景最近 K 行
+  aux_max: 5                 # MA-4：auxiliary 列上限（Task 4）
+  flat_pct: 0.5              # MA-6：flat 判定阈值 %（Task 5）
+  noise_std_hint: null       # MA-7：非 null 时 std 超阈 INFO 高噪声
+
+compress:
+  experience_auto_compress: after_round   # off | warn | after_round — 轮末 EXPERIENCE 压缩（见 PROTOCOL §7.5.2–7.5.3）
+  experience_compress_preset: standard
+  experience_compress_keep_n: 5              # C2 保留近 N 轮实验要点（v2 默认 5）
+  experience_compress_keep_reflects: 2      # C2 保留近 N 条 [反思]
+  experience_compress_tier_cell_max: 80     # C2 Tier 矩阵单格字数上限
+  experience_compress_scenario_cell_max: 120
+  experience_compress_reflect_hist_summary_max: 240  # C2 截断 REFLECT_INDEX 历史摘要（含历史债务）
+  experience_compress_min_lines: 400
+  experience_compress_min_archivable: 10
+  experience_compress_cooldown_rounds: 2
+
+safety:
+  human_guidance_gate_fail_fast: false  # true=HUMAN 相对批次基线 drift 时整批 exit 1（默认单轮 skip Agent）
+  skill_activity_log: true     # 统一技能活动 log → .auto-nn/skill-activity.jsonl；false=append 脚本 SKIP
+
+# ── Agent 自动化（auto-nn-run.sh）──────────────────────────────────
+agent:
+  # ⚠️ 本块键已迁移到顶层 block（见上）。保留为降级别名；读取时顶层 wins（见
+  # scripts/lib/nn_config.py load_nn_config）。下次 governance-sync 经
+  # migrate_agent_keys.py 自动清理本块迁移键。plateau_rounds / scenario_* / experiment_mode 永久留此块。
+  reflect_interval: 1        # 自动 reflect 上限频率：距上次 reflect ≥N 轮且满足门禁 R2–R6 才可跑（0=关闭；非每轮必跑）
+  reflect_force: false       # true = 每实验轮结束强制 reflect（R1；仍须 reflect_interval>0）
+  reflect_skip: false        # true = 关闭自动 reflect（仍可 reflect.py / auto-nn-run.sh reflect）
+  reflect_evidence_recent: 3           # REB Phase 0.5：台账 recent N 行（skip preflight_check）
+  reflect_evidence_include_flagged: true
+  reflect_evidence_log_tail_lines: 200
+  reflect_evidence_snapshot_diff: true
+  reflect_evidence_git_log: true          # REB：读 git log（keeper..run，scope train.py/workspace）
+  reflect_evidence_git_log_max: 12
+  reflect_evidence_attested_failures: 3   # REB Phase 0.5b：DISCARD+attested 进 ETS 上限
+  tier_attestation_enabled: true
+  tier_attestation_window: 12
+  tier_exhaust_min_attempts: 2
+  # 创新维（routine / extend / novel）配置
+  # 与 A–E 流程维正交。routine=生态现成；extend=论文/成熟实现；novel=研究性自创。
+  # reflect 轮末会跑轻量 audit，仅 WARN。
+  innovation_audit_enabled: true
+  innovation_fingerprint_enabled: true
+  innovation_fingerprint_authoritative: true
+  # innovation_routine_hints: []  # 项目额外 hints（模块名、正则等），会与默认合并
+  external_evidence_enabled: true
+  # 外部论文检索任务域（1 行）；空则读 README 首行
+  external_task_domain: ""
+  external_max_http_per_reflect: 6
+  external_paper_hits_default: 3
+  external_paper_hits_deepen: 5
+  external_pdf_enabled: true
+  external_serper_key_env: SERPER_API_KEY
+  train_poll_interval_sec: 300  # 后台训练时 wait-train.sh 两次检查间隔（秒）；可用 NN_TRAIN_POLL_INTERVAL_SEC 覆盖
+  # GPU 三档快照（auto-run 轮初 nvidia-smi → Run Context / Hardware prompt）
+  gpu_mem_reserve_gb: 2.0           # 共享卡预留显存（GB）；headroom 须 ≥ reserve + estimated
+  gpu_estimated_mem_gb: 4.0       # 单槽 train.py 预估显存（GB）；OOM 时调大或降 max_parallel
+  gpu_exclusive_mem_ratio: 0.25     # mem_used/total ≤ 此值且 util 低 → exclusive（近空独占）
+  gpu_exclusive_util_max: 10
+  gpu_shareable_mem_ratio: 0.70     # 非 busy 且 headroom 够 → shareable（可同卡插队）
+  gpu_shareable_util_max: 50
+  gpu_busy_mem_ratio: 0.85          # mem 或 util 超阈 → busy（勿加任务）
+  gpu_busy_util_min: 80
+  gpu_colocate_on_single: true      # gpus 白名单仅 1 卡时允许多槽同卡（显存够）
+  plateau_rounds: 3          # 连续 N 轮无改善视为撞墙（写入 prompt 提示）
+  # experiment_mode — 粗粒度人生目标（init 块 G1；迁后 /auto-nn-goal mode）
+  #   optimize  = 先把主指标做上去
+  #   innovate  = 指标 + 更深方法（创新维软引导，深度不作硬停）
+  #   explore   = 摸底方法空间（须迁移验收后再开 objective_mode=explore）
+  experiment_mode: optimize
+  # goal — focus 主指标目标值；optimize/innovate 时 loop 达标即停（explore 跳过 goal 硬停）
+  # 不设 goal_value（或删此键）= 无 goal 停止，跑满 N（兼容旧行为）
+  # 设/改/查/清走技能 /auto-nn-goal（常规迭代 Agent 勿手改本节）
+  goal_value: null           # 全局默认目标；null=未配。未单独写的场景继承此值
+  goal_metric: null          # 用哪个指标当目标；null=默认 contract.metric_key（focus 主指标）
+  goal_op: null              # 比较方向 >= | <=；null=按 metric_direction（maximize→>=，minimize→<=）
+  goal_stop_mode: focus_only # focus_only=只盯主场景停批 | all_in_scope=active/清单内有 goal 的全达标才停
+  scenario_goals: {}         # 按场景覆盖，如 "128b": 0.75；null 值=该场景豁免 goal
+  analyse_recent_rows: 10    # MA-2：focus 场景最近 K 行
+  analyse_aux_max: 5         # MA-4：auxiliary 列上限（Task 4）
+  analyse_flat_pct: 0.5      # MA-6：flat 判定阈值 %（Task 5）
+  analyse_noise_std_hint: null  # MA-7：非 null 时 std 超阈 INFO 高噪声
+  run_context_injection: full   # full=每轮注入 RUN CONTEXT（brief/keeper/MA-1/journal/env）；off=调试关闭
+  run_context_journal_max_entries: 15  # Run Context 注入 journal entries 尾行数
+  run_context_recent_rows: 5   # Run Context 近窗 TSV 行数（1–10；事实陈述，非 stage）
+  # language — Agent 回答语种（仅影响 Agent text 块；模板脚本 stderr / HUMAN_GUIDANCE 仍为英文）
+  # 注入到 RUN CONTEXT 顶部作为行为提示；支持任意字符串。常用值:
+  #   "中文" / "English" / "日本語" / "auto" (auto=跟随用户 HUMAN_GUIDANCE 语种，未配置时不提示)
+  language: auto
+  human_guidance_gate_fail_fast: false  # true=HUMAN 相对批次基线 drift 时整批 exit 1（默认单轮 skip Agent）
+  skill_activity_log: true     # 统一技能活动 log → .auto-nn/skill-activity.jsonl；false=append 脚本 SKIP
+  experience_auto_compress: after_round   # off | warn | after_round — 轮末 EXPERIENCE 压缩（见 PROTOCOL §7.5.2–7.5.3）
+  experience_compress_preset: standard
+  experience_compress_keep_n: 5              # C2 保留近 N 轮实验要点（v2 默认 5）
+  experience_compress_keep_reflects: 2      # C2 保留近 N 条 [反思]
+  experience_compress_tier_cell_max: 80     # C2 Tier 矩阵单格字数上限
+  experience_compress_scenario_cell_max: 120
+  experience_compress_reflect_hist_summary_max: 240  # C2 截断 REFLECT_INDEX 历史摘要（含历史债务）
+  experience_compress_min_lines: 400
+  experience_compress_min_archivable: 10
+  experience_compress_cooldown_rounds: 2
+  # exploration — 起手 Tier（非锁定；撞墙见 plateau_rounds + EXPERIENCE「Tier 状态」表升档）
+  #   conservative → A（标量/日程）  balanced → B（模型/表示）
+  #   inductive    → C（优化目标：改 workspace loss/reward/正则）  aggressive → D（数据/分布：课程、采样逻辑）
+  # Tier E = 改题/评估（非本字段）；更长训练/OOM 归 A 或 D-工程，不是 E。见 EXPERIENCE.md#tier-ladder
+  exploration: conservative
+  objective_mode: optimize   # optimize（默认）| explore（opt-in 探索期；迁移完成后再开）
+  # explore:                 # objective_mode=explore 时可选
+  #   metric_floor: null      # explore 专用：主指标底线（破线 WARN，不硬停 loop）
+  #   keep_on: [first_in_cell, attested_novel, scenario_debut]
+  #   reflect_gate_coverage_stall: 3
+  scenario_axis: ""          # 场景维度名（如 n_sip、val_split）；结构化 manifest 与 prompt
+  scenario_policy: ""        # focus | rotate | multi_eval_one_train；空=读 README SCENARIO_POLICY
+  scenario_default: default    # 默认场景 ID；须 ∈ README SCENARIO_POLICY 场景清单
+  scenario_active: ""        # 可选场景列表，逗号/分号分隔 → prompt manifest.active_ids
+  # scenario_bindings：正向 default→env（auto-run）；逆向 cfg→scenario_id（finalize 台账）
+  # 示例（PINN）:
+  # scenario_bindings:
+  #   - env_var: NN_MODE
+  #     cfg_key: MODE
+  #     parser: mode_prefix
+  #   - env_var: NN_GAMMA
+  #     cfg_key: GAMMA
+  #     parser: gamma_kerr_linear
+  #   - env_var: NN_N_SIP
+  #     cfg_key: N_SIP
+  #     parser: sip
+  #     value_key: numeric
+  #     skip_if_set: true
+
+experiment_prefix: ""        # _runs/exp/ 目录名前缀；空则默认 "run"

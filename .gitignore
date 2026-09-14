@@ -1,0 +1,100 @@
+# auto-nn 模板维护仓：与 template/package/.gitignore 保持同步
+# 真源：template/package/.gitignore（new-project / governance-sync 均从此复制）
+
+# 数据与 KEEP 指针目录
+data/**
+!data/README.md
+saved/
+
+# 训练 stdout：规范路径 _runs/logs/；根目录 run*.log 仅防历史遗留
+/run*.log
+_runs/logs/*.log
+
+# 实验产物（任意路径下名为 exp/ 的目录，含 _runs/exp/）
+exp/
+results.json
+results.jsonl
+evaluation_result.json
+round_decision.json
+keep_suggestion.json
+
+# Python / 工具缓存
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# 权重与图表
+*.pt
+plots/
+
+# Agent 编排日志（保留 README）
+_runs/agent/*
+!_runs/agent/README.md
+
+# Agent 临时脚本（保留 README）
+workspace/scripts/*
+!workspace/scripts/README.md
+
+# v1 遗留路径
+parallel_logs/
+parallel_train_logs/
+runs/
+metrics.jsonl
+
+# 立项 / 迁移临时标记
+.new-project-tsv-header.err
+_runs/.tsv-header-pending
+
+# 台账备份（勿入库）
+*.tsv.bak
+*.jsonl.bak
+results.jsonl.bak
+
+# 环境变量文件（可选本地 secret）
+.env
+.env.*
+
+# RL offline_knn 运行日志
+workspace/offline_knn/multi_structure_logs/*.log
+
+# 维护仓特有
+template/package/_runs/
+template/data/**
+.pytest_cache/
+# 本机工具链缓存（如临时下载的 Python embeddable zip，不入仓）
+.tools/
+
+# _runs/doctor_reports/ (added by governance-sync — round-doctor 漂移报告)
+_runs/doctor_reports/*
+!_runs/doctor_reports/README.md
+
+# .auto-nn/ 业务项目 init 留档（运行时 auto-run/doctor 不读）
+# 根规则：匹配任意深度的 .auto-nn/ 目录（git 行为：bare pattern 隐式通配）
+# 兜底双层：template/package/.gitignore 也加了同名规则（防路径漂入模板仓）
+# 共同防 T-A2 类漂移：init 写 .auto-nn/ 时若 cwd drift 落进维护仓，两层都拒收
+.auto-nn/
+
+# governance-sync 若误落在维护仓根的业务包文件（真源 template/package/）
+/PROTOCOL.md
+/auto-nn-run.sh
+/experiment.py
+/reflect.py
+/profiles.yaml
+
+# pull-all 工具产物（路径配置本地化 + last-sha 每次运行变化，不入仓）
+/.pull-all-remote-path
+/.pull-all-last-sha
+# Claude worktrees（EnterWorktree 创建的并行工作树；嵌套 git 目录不入仓）
+/.claude/worktrees/
+# npx skills 安装的第三方工程技能副本（真源在 GitHub；本仓用 skills-lock.json 锁版本）
+/.agents/
+# 沙箱设施运行时产物（沙箱仓自带 .gitignore；本仓不感知内部路径）
+/dest/
+# Agent 本地工单 / 头脑风暴产物（docs/agents/issue-tracker.md；只在本机，不入仓）
+/.scratch/
+/.superpowers/
+# 聊天工具接收的附件缓存（不入仓）
+/.cc-connect/

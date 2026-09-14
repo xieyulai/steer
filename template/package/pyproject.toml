@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "auto-nn-experiment"
+version = "0.1.0"
+description = "auto-nn-experiment — v2 template with ExperimentBase"
+authors = ["auto-nn-experiment <local@local>"]
+readme = "README.md"
+package-mode = false  # root-only 实验仓（不打包成库）；Poetry 2.x 默认 true 会试图装 root 包 → fail
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.14"
+torch = { version = "2.5.1+cu124", source = "pytorch-cu124" }
+torchvision = { version = "0.20.1+cu124", source = "pytorch-cu124" }
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.9.0"
+pyyaml = "^6.0.3"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[[tool.poetry.source]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+priority = "explicit"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

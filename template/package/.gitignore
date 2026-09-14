@@ -1,0 +1,80 @@
+# auto-nn-experiment 业务项目标准忽略（真源：template/package/.gitignore）
+# 注意：_runs/results.tsv 须入库（台账）；勿写 _runs/ 整目录忽略
+
+# 数据与 KEEP 指针目录
+data/**
+!data/README.md
+saved/
+!saved/keepers.json
+!saved/experiment_journal.json
+
+# 训练 stdout：规范路径 _runs/logs/；根目录 run*.log 仅防历史遗留
+/run*.log
+_runs/logs/*.log
+
+# 实验产物（任意路径下名为 exp/ 的目录，含 _runs/exp/）
+exp/
+results.json
+results.jsonl
+evaluation_result.json
+round_decision.json
+keep_suggestion.json
+
+# 框架源码 vendoring（adapter 仓常见 _vendor/；勿入库）
+_vendor/
+vendor/
+
+# Python / 工具缓存
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# 权重与图表
+*.pt
+plots/
+
+# Agent 编排日志（保留 README）
+_runs/agent/*
+!_runs/agent/README.md
+
+# 轮末 doctor 报告（保留 README）
+_runs/doctor_reports/*
+!_runs/doctor_reports/README.md
+
+# Agent 临时脚本（保留 README）
+workspace/scripts/*
+!workspace/scripts/README.md
+
+# v1 遗留路径
+parallel_logs/
+parallel_train_logs/
+runs/
+metrics.jsonl
+metrics_series.tsv
+
+# 立项 / 迁移临时标记
+.new-project-tsv-header.err
+_runs/.tsv-header-pending
+
+# 台账备份（勿入库）
+*.tsv.bak
+*.jsonl.bak
+results.jsonl.bak
+
+# 环境变量文件（可选本地 secret）
+.env
+.env.*
+
+# Claude Code / Cursor 运行时目录（业务仓不应入库）
+.claude/
+
+# spec T-A2 防线 3: 兜底忽略模板仓误写入的 .auto-nn/
+# 业务仓调用 append-init-qa-log.py 时若 Path.cwd() drift 到 template/package，
+# .gitignore 兜底防止误 commit。
+.auto-nn/
+
+# RL offline_knn 运行日志
+workspace/offline_knn/multi_structure_logs/*.log

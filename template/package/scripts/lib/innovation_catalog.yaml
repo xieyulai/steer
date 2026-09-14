@@ -1,0 +1,123 @@
+schema_version: 1
+
+scalar_keys:
+  - LR
+  - LEARNING_RATE
+  - EPOCHS
+  - NUM_EPOCHS
+  - BATCH_SIZE
+  - WEIGHT_DECAY
+  - WD
+  - LABEL_SMOOTHING
+  - FOCAL_GAMMA
+  - FOCAL_ALPHA
+  - POLY_EPSILON
+  - SCHEDULER
+  - WARMUP
+  - EMA
+  - DROPOUT
+  - WIDTH_MULT
+  - SEED
+  - seed_resolved
+
+ignore_config_keys:
+  - _repro
+  - scenario_id
+  - seed_resolved
+  - git_commit
+
+primary_keys:
+  MODEL_ARCH:
+    table: learners
+    tier: B
+  ACTIVATION:
+    table: activations
+    tier: B
+  LOSS:
+    table: objectives
+    tier: C
+  D_NOVEL_MODE:
+    table: data_strategies
+    tier: D
+  MIXUP_ALPHA:
+    table: data_strategies
+    tier: D
+    strategy_key: mixup
+  CUTMIX_ALPHA:
+    table: data_strategies
+    tier: D
+    strategy_key: cutmix
+
+# 框架仓的第三方键（如 MAMMOTH_MODEL/BUFFER_SIZE）**不登记在此**——走业务仓
+# contract/framework_binding.yaml 的 innovation 注册段（primary_keys + tables，
+# 立项期人审、governance-sync 不覆盖），由 load_innovation_catalog 合并进硬判定。
+
+objectives:
+  ce:
+    change: baseline
+    docs_symbols: [CrossEntropyLoss]
+  soft_ce:
+    change: baseline
+    docs_symbols: [CrossEntropyLoss]
+  focal:
+    change: drop_in
+    paper_query: "Focal Loss Lin 2017 arXiv:1708.02002"
+  polyloss:
+    change: drop_in
+    paper_query: "PolyLoss Leng 2022 arXiv:2204.12511"
+    docs_symbols: [CrossEntropyLoss]
+  symmetric_ce:
+    change: drop_in
+    paper_query: "Symmetric Cross Entropy Wang 2019 arXiv:1908.06112"
+  ohem:
+    change: drop_in
+    paper_query: "Online Hard Example Mining Shrivastava 2016"
+
+activations:
+  relu:
+    change: baseline
+    docs_symbols: [ReLU]
+  silu:
+    change: drop_in
+    paper_query: "Swish SiLU activation"
+    docs_symbols: [SiLU]
+  mish:
+    change: drop_in
+    paper_query: "Mish activation arXiv:1908.08681"
+
+learners:
+  cnn:
+    change: baseline
+  mlp:
+    change: baseline
+  resnet_cnn:
+    change: drop_in
+    paper_query: "ResNet He 2016"
+  se_resnet_cnn:
+    change: drop_in
+    paper_query: "Squeeze-and-Excitation Networks Hu 2018"
+  eca_cnn:
+    change: drop_in
+    paper_query: "ECA-Net Wang 2020 arXiv:1910.03151"
+  convnext_cnn:
+    change: drop_in
+    paper_query: "ConvNeXt Liu 2022"
+  se_eca_cnn:
+    change: drop_in
+    paper_query: "SE ECA attention CNN"
+    components: [se, eca]
+
+data_strategies:
+  mixup:
+    change: drop_in
+    paper_query: "mixup Zhang 2018"
+  cutmix:
+    change: drop_in
+    paper_query: "CutMix Yun 2019 arXiv:1905.04899"
+  class_balanced:
+    change: drop_in
+    paper_query: "Class-Balanced Loss Cui 2019 arXiv:1901.05555"
+  none:
+    change: baseline
+  default:
+    change: baseline

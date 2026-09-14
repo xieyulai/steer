@@ -1,0 +1,42 @@
+# update.yaml — workflow=update(原 reinit 场景)
+# source_root == repo_root;同仓二次 init(加数据 / 改模型 / 改字段);不重写 contract/workspace。
+scenario_id: update
+description: source_root == repo_root;同仓二次 init,增量改字段/加数据/改模型
+recognition:
+  has_source_root: true
+  same_dir_as_repo: true
+framework_pattern: register_learner  # 增量改:沿用已有 contract/workspace 的 register 入口
+freedom_levels:
+  A:
+    routine: "改 LR / EPOCHS / BATCH_SIZE"
+    extend: "加新可调 cfg 字段"
+    novel: "AutoML 参数搜索"
+  B:
+    routine: "同系列骨干切换"
+    extend: "跨系列架构"
+    novel: "自研架构"
+  C:
+    routine: "换标准 loss"
+    extend: "多 loss 联合"
+    novel: "自研对比损失"
+  D:
+    routine: "换标准增强"
+    extend: "自动增强搜索"
+    novel: "生成数据 / 自监督预训练"
+  E:
+    locked: true
+    note: "E 档(数据集/指标/seed)二次 init 不允许改 — 若需变更,开新项目"
+decision_tree:
+  - when: "二次 init 与首次 contract 冲突"
+    do:
+      - "强制读 references/manual/abcde-manual.md 旧版"
+      - "逐 cell 比对新旧 decision_tree"
+      - "差异 cell 走 picker 重新确认(不静默覆盖)"
+  - when: "新增数据/模型,未在已有 register_learner 注册"
+    do:
+      - "先 register 后 init(避免 init 末步缺注册)"
+      - "检查 workspace/build_learner 装饰的类是否齐"
+  - when: "E 档需求变更(数据集/指标/seed)"
+    do:
+      - "开新项目(update 不许改 E)"
+      - "旧仓归档为 milestone_closure"

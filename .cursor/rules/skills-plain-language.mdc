@@ -1,0 +1,17 @@
+---
+description: auto-nn-* 对人先说人话；用户用英文提问则用英文回复，用中文则用中文
+alwaysApply: true
+---
+
+# auto-nn-* 技能 — 说人话外壳
+
+执行任一 `auto-nn-*` 技能、面向用户输出时遵守：
+
+- **跟用户的语言走**：用户这条消息主要是英文 → 对人用英文；主要是中文 → 用中文。不要中英夹杂（专有名、斜杠技能名、`config.json` 键除外）。
+- 人话对照表：[`docs/skill-glossary.md`](docs/skill-glossary.md) 的「对用户怎么说」列（中文）与 **In English** 列。英文用户用 In English 列，禁止裸抛内部码。
+- **先说人话，代号只在括号里补充**；禁止裸抛 `MA-1`、`C2`、`Tier`、`Modify-L1`、`G-HUMAN`、`plateau`、`keeper`、`scenario_id`、`Run Context`、`finalize_round` 等内部码。
+- **必须贴脚本原始输出时**（analyse 的 MA 块、doctor 的体检表、clear 的《清理计划》、check 的 TSV 表），先用**一句人话小结**讲结论，让用户不读代号也懂。脚本表头本身是中文，**不要改脚本**；小结用用户的语言解释表在说什么。
+- **Modify**：对人须 **人话全称（Modify-代号）**；英文用户用术语表 In English 列（如 “change the scoring columns (Modify-L2)”）。禁止裸 `L1`/`S-complete`/`Track S`。
+- **init 误称**：禁止「人生目标/人生模式」；中文用 **实验目标/实验模式**，英文用 **experiment goal / experiment mode**。
+- **边界**：本规则只管「对用户怎么说」。脚本输出格式、Agent 内部操作正文、硬边界、命令一律不改。
+- **发出前自检（迁后 3 问）**：① 过程码是否已按用户语言翻译？② 贴表/贴 MA 块前是否有一句人话小结？③ Modify 是否带人话前缀？

@@ -1,0 +1,131 @@
+# CSI 短码交卷 · 迁入完整答卷举例（confirm_only）
+# 测试 fixture（test_init_answers.py）。每个项目自己写一份；这只是 CSI 怎么填的例子。
+# 用法：
+#   python3 scripts/init_answers.py validate --answers this.yaml --workflow migrate --repo-root <target> --write-resolved
+#   /auto-nn-init <target> --answers this.yaml
+#
+# 口径：训练可用标签做重建；官方分 encode→≤64bit→只凭码 decode；
+# 编码不得改实例身份；失败该批计失败，不回退整网预测。
+
+version: 1
+confirm_only: true
+workflow: migrate
+project: csi-short-code
+
+answers:
+  对齐理解:
+    user: 信道状态信息压缩重建。训练看测量与标签；官方分必须走短码手续，不能整网直接出分。
+    lock: P0=csi-reconstruction; official=short-code-exam
+
+  场景清单:
+    user: 一个官方场景，测重建质量。
+    lock: D1=single-scenario reconstruction
+
+  数据划分:
+    user: 跟源项目划分；测试用户不进训练，只当官方终评。
+    lock: D2=source-aligned; OFFICIAL_TEST=test-users
+
+  训练许用材料:
+    choice: B
+    eval_only_assets:
+      - data/data_real.npy
+    eval_only_readers:
+      - contract/test.py
+      - contract/prepare_data.py
+      - contract/data_split.py
+
+  官方打分通道:
+    choice: B
+    impl: _reconstruct
+    rule: 先 encode，码长 n_elem×bits_per_dim 不超过 64 bit，再只把码交给 decode
+
+  其他信息规矩:
+    choice: list
+    rules:
+      - 编码不得改实例状态（只比对属性 id）
+      - 官方分失败该批计失败，不回退成整网预测
+    train_batch_keys: []
+
+  训内数据处理:
+    user: 按建议，训内处理落工作区。
+    lock: D3=workspace
+
+  复现数据:
+    user: 锁数据根与源项目一致。
+    lock: D4=lock-data-root
+
+  旧成绩与产物:
+    user: 不带旧成绩表，新仓从零记。
+    lock: H1=discard
+
+  旧经验文档:
+    user: 不带旧经验文档。
+    lock: H2=discard
+
+  旧文档硬规则:
+    user: 无额外硬约束。
+    lock: H3=none
+
+  训练里什么能动:
+    user: 主损失是重建误差；短码手续不能改。
+    lock: T1.HARD=reconstruction-loss; T1.FORBIDDEN=bypass-short-code
+
+  调用链:
+    user: 外层按圈训练，官方分只在训末走合同测试。
+    lock: T2=epoch-loop; official=contract.test
+
+  主辅指标:
+    user: 主指标用官方测试上的重建误差，越小越好。
+    lock: E1.primary=nmse; E1.direction=min
+
+  实验模式:
+    choice: B
+
+  主指标目标值:
+    value: none
+
+  指标列分级:
+    user: 主指标进成绩，辅助列可看。
+    lock: E2=primary+aux
+
+  官方终评:
+    user: 训末跑合同测试，必须走短码还原，不得改成整网前向。
+    lock: E3=contract.test; path=restricted; impl=_reconstruct
+
+  训内评估:
+    user: 训内打同一套主指标，但加载器可以不同；每圈评一次。
+    lock: E4_PATH=same-metric-diff-loader; E4_训内节奏=A
+
+  记录表列:
+    user: 按四区记。
+    lock: E5=four-zones
+
+  场景探索方案:
+    user: 先盯这一个场景。
+    lock: E6=focus-single
+
+  运行参数进表:
+    user: 默认键进成绩表。
+    lock: E7=default-keys
+
+  模型存档:
+    user: 留最后一圈。
+    lock: E8=last
+
+  怎么算更好:
+    user: 主误差降了才算更好（相对上一最好）。
+    lock: keep.mode=relative; keep.primary_delta=0.001; direction=min
+
+  训练墙钟:
+    seconds: 7200
+
+  GPU与并行:
+    gpus: [0]
+    max_parallel: 1
+
+  起步尺子:
+    user: 先立一把最傻的重建下界；公开对照有原仓再校准。
+    lock: O3=plain+reference-if-calibrated
+
+  复现随机性:
+    seed: 42

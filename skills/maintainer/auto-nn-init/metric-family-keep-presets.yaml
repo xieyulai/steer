@@ -1,0 +1,202 @@
+# Init E9 KEEP 档位预设（单一真源；Agent 查表生成人话选项，不读 TSV/项目目录）
+
+M1:
+  label_zh: 比例 / 概率类（越大越好）
+  examples: [test_acc, val_acc, AUC, F1]
+  tiers:
+    - id: A
+      label_zh: 涨 0.1%
+      mode: relative
+      primary_delta: 0.001
+      reason_zh: 分类/AUC 高平台期单次波动常见在这一档；适合微调结构、增广、训练策略
+      recommended: true
+    - id: B
+      label_zh: 涨 0.2%
+      mode: relative
+      primary_delta: 0.002
+      reason_zh: 比 A 略严，仍允许稳定小步进步；适合噪声略大或多场景
+    - id: C
+      label_zh: 涨 0.5%
+      mode: relative
+      primary_delta: 0.005
+      reason_zh: 旧模板默认；只留明显跃迁，高平台期易出现很多轮都留不下
+
+M2:
+  label_zh: 损失类（越小越好）
+  examples: [cross_entropy, train_loss, NLL]
+  tiers:
+    - id: A
+      label_zh: loss 相对降 1%
+      mode: relative
+      primary_delta: 0.01
+      reason_zh: Loss 尺度随 batch/标签平滑变，相对比绝对稳；1% 对常规迭代合理
+      recommended: true
+    - id: B
+      label_zh: loss 相对降 0.5%
+      mode: relative
+      primary_delta: 0.005
+      reason_zh: 更敏感，适合 loss 已很低、只想留小幅下降
+    - id: C
+      label_zh: loss 相对降 2%
+      mode: relative
+      primary_delta: 0.02
+      reason_zh: 只留明显下降，适合早期 loss 还在快速下降
+
+M3:
+  label_zh: 误差 / 距离类（越小越好）
+  examples: [MSE, RMSE, MAE]
+  tiers:
+    - id: A
+      label_zh: 误差相对降 1%
+      mode: relative
+      primary_delta: 0.01
+      reason_zh: 未跑实验时不知绝对尺度，相对最稳妥
+      recommended: true
+    - id: B
+      label_zh: 误差相对降 0.5%
+      mode: relative
+      primary_delta: 0.005
+      reason_zh: 更严，适合误差已在较小量级、想抓细改善
+    - id: C
+      label_zh: 误差相对降 2%
+      mode: relative
+      primary_delta: 0.02
+      reason_zh: 只留较大改善，适合早期误差仍快速下降
+
+M4:
+  label_zh: 相对误差类（越小越好）
+  examples: [rL2, rel_error]
+  tiers:
+    - id: A
+      label_zh: 再降 0.01（与 rL2 同量纲）
+      mode: absolute
+      primary_delta: 0.01
+      reason_zh: 指标本身已是相对误差，用绝对步长更直观
+      recommended: true
+    - id: B
+      label_zh: 再降 0.005
+      mode: absolute
+      primary_delta: 0.005
+      reason_zh: 更严，适合 rL2 已在 0.0x 量级
+    - id: C
+      label_zh: 再降 0.02
+      mode: absolute
+      primary_delta: 0.02
+      reason_zh: 只留较大改善
+
+M5:
+  label_zh: 回报 / 得分（越大越好）
+  examples: [return, episode_reward, avg_score]
+  tiers:
+    - id: A
+      label_zh: 涨 2%
+      mode: relative
+      primary_delta: 0.02
+      reason_zh: RL 回报方差大，过严会导致长期无 KEEP
+      recommended: true
+    - id: B
+      label_zh: 涨 1%
+      mode: relative
+      primary_delta: 0.01
+      reason_zh: 环境较稳定、回报尺度固定时可略严
+    - id: C
+      label_zh: 涨 5%
+      mode: relative
+      primary_delta: 0.05
+      reason_zh: 只留策略明显变好
+
+M6:
+  label_zh: 其它（E1 已写清定义）
+  examples: []
+  tiers:
+    - id: A
+      label_zh: 相对改善 1%
+      mode: relative
+      primary_delta: 0.01
+      reason_zh: 通用默认
+      recommended: true
+    - id: B
+      label_zh: 相对改善 0.5%
+      mode: relative
+      primary_delta: 0.005
+      reason_zh: 更严
+    - id: C
+      label_zh: 相对改善 2%
+      mode: relative
+      primary_delta: 0.02
+      reason_zh: 更松
+
+# G2 目标档位（optimize/innovate；与 E9 独立）
+g2_profiles:
+  M1_simple_classification:
+    when: MNIST / FMNIST / CIFAR-10 等简单多类分类
+    tiers:
+      - id: A
+        label_zh: 目标 0.95
+        goal_value: 0.95
+        reason_zh: 较易达到，适合先验证流水线或算力紧
+      - id: B
+        label_zh: 目标 0.98
+        goal_value: 0.98
+        reason_zh: 中等难度，平衡达标停与探索空间
+      - id: C
+        label_zh: 目标 0.99
+        goal_value: 0.99
+        reason_zh: 难但常见 SOTA 量级；可能长期跑满 N
+      - id: D
+        label_zh: 暂不设
+        goal_value: null
+        reason_zh: 不确定时推荐；之后 /auto-nn-goal set
+        recommended: false
+  M1_hard_classification:
+    when: 难分类 / 细粒度 / 大规模
+    tiers:
+      - id: A
+        label_zh: 目标 0.90
+        goal_value: 0.90
+        reason_zh: 较松起点
+      - id: B
+        label_zh: 目标 0.95
+        goal_value: 0.95
+        reason_zh: 中等
+      - id: C
+        label_zh: 自定义
+        goal_value: null
+        reason_zh: 用户给数
+      - id: D
+        label_zh: 暂不设
+        goal_value: null
+        reason_zh: 不确定时推荐
+        recommended: true
+  M2_M3_M4:
+    when: loss / 误差 / 相对误差主指标
+    tiers:
+      - id: A
+        label_zh: 暂不设
+        goal_value: null
+        reason_zh: 尺度立项时常未知，避免拍错目标导致过早停或永不停
+        recommended: true
+      - id: B
+        label_zh: 用户给数
+        goal_value: null
+        reason_zh: 已有论文或经验目标
+      - id: C
+        label_zh: 自定义
+        goal_value: null
+        reason_zh: 用户指定
+  M5_rl:
+    when: RL 回报主指标
+    tiers:
+      - id: A
+        label_zh: 暂不设
+        goal_value: null
+        reason_zh: 回报尺度环境相关，init 不强推具体数
+        recommended: true
+      - id: B
+        label_zh: 用户给数
+        goal_value: null
+        reason_zh: 已知环境 benchmark
+      - id: C
+        label_zh: 自定义
+        goal_value: null
+        reason_zh: 用户指定

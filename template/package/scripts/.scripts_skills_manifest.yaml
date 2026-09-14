@@ -1,0 +1,56 @@
+# scripts↔skills consistency 真源清单 — CI/check_scripts_skills_consistency 消费
+# 2026-07-06 引入，与 .gitignore 兼容（文件名以 . 开头）
+#
+# 规则：每个下发到业务仓的脚本必须在 manifest 登记，登记后才能：
+#   R1 业务仓 scripts/ 是 template/package/scripts/ 的 symlink（r23 ffb66e5）
+#   R2 业务仓被 callers 中至少 1 个 SKILL.md / sh 引用（grep "scripts/<name>.<ext>"）
+#   R3 业务仓被 governance-sync.sh cp 块覆盖（业务仓 sync 时落到 <P>/scripts/）
+#   R4 caller 文件必须存在（修 SKILL.md 不写死链）
+#
+# 加新脚本流程：
+#   ① 在 template/package/scripts/<name>.py 写代码
+#   ② 在本文件加 entry（name/type/callers）
+#   ③ 在 governance-sync.sh 加 cp 行（governance_sync_manifest 也填）
+#   ④ 在 caller SKILL.md / .sh 写命令（python3 scripts/<name>.py ...）
+#   ⑤ 跑 pytest tests/template_tests/（沙箱设施自带路径）
+#
+scripts:
+  # === ABCDE/v4 边界（r22 Layer A + r24 governance-sync 修复）===
+  - name: init_o3_abcde.py
+    type: cli
+    callers:
+      - skills/maintainer/auto-nn-init/SKILL.md      # 阶段 2 O3 picker → 写边界
+  - name: abcde_migrate.py
+    type: cli
+    callers:
+      - template/package/scripts/governance-sync.sh # Step 3 老业务仓兜底（r24 后置）
+  - name: init_workflow.py
+    type: library
+    callers: []  # library：被 init_o3_abcde / abcde_migrate `from init_workflow import` 调用；业务仓由 governance-sync 下发
+  - name: init_watchlist.py
+    type: cli
+    callers:
+      - skills/maintainer/auto-nn-init/SKILL.md    # F1.5 一次性：profiles.yaml default_watchlist → nn-config.yaml ledger.watchlist
+  # === 版本管理（2026-07-06 spec）===
+  - name: check_template_version.py
+    type: cli  # 主调方 _check_template_version.sh shell-out；library API 由 --self-test 旁路
+    callers:
+      - template/package/scripts/_check_template_version.sh
+  - name: _check_template_version.sh
+    type: cli  # 下划线开头：auto-nn-update.sh 内部 gate，不直接由用户调
+    callers:
+      - template/package/scripts/auto-nn-update.sh
+  - name: release-check.sh
+    type: cli
+    callers:
+      - CONTRIBUTING.md  # 维护者手动（发版门禁）
+  - name: template-version.sh
+    type: cli
+    callers:
+      - template/package/CLAUDE.md  # 业务仓 CLI 入口
+  # === Manual-Run 范围闸（v1.28.0）===
+  - name: manual-run-scope-check.sh
+    type: cli  # preflight diff 闸，由 nn-doctor §8 代跑，stdout=单行 STATUS: msg
+    callers:
+      - template/package/scripts/nn-doctor.sh       # §8 manual_run_scope_check 子检查
+      - skills/post-migration/auto-nn-doctor/SKILL.md  # 文档化调用入口

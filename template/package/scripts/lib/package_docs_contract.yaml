@@ -1,0 +1,28 @@
+# package_docs_contract.yaml — PROTOCOL/CLAUDE 文档漂移机械规则（第一批）
+version: 1
+scan_files:
+  - PROTOCOL.md
+  - CLAUDE.md
+  - docs/nn-routing/intent-map.md
+allow_context_radius: 2
+allow_context_substrings:
+  - 已退役
+  - 不迁到
+  - 不在
+  - 勿再写
+  - 旧 API
+  - 取代已退役
+banned_primary_path:
+  - id: B1
+    pattern: effective_experiment_mode
+  - id: B2
+    pattern: goal\.spec
+  - id: B3
+    pattern: sync_agent_experiment_mode
+required_mentions:
+  - term: exploration_mode
+    file: PROTOCOL.md
+  - term: agent.goal_spec
+    file: PROTOCOL.md
+  - term: primary_delta_rel
+    file: PROTOCOL.md

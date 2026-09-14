@@ -1,0 +1,53 @@
+# build.yaml — workflow=build(原 greenfield 场景)
+# 无 source_root;从 supervised/rl/physical skeleton 全新起步;无遗留代码、无外部框架黑盒、无历史约束。
+scenario_id: build
+description: 无 source_root,从 supervised/rl/physical skeleton 全新起步
+recognition:
+  has_source_root: false
+  has_contract: false
+framework_pattern: register_learner
+freedom_levels:
+  A:
+    routine: "改 LR / EPOCHS / BATCH_SIZE"
+    extend: "加调度策略 / weight_decay 显式调"
+    novel: "AutoML 参数搜索 / 自适应学习率"
+  B:
+    routine: "同系列骨干切换 (resnet18→resnet50)"
+    extend: "跨系列架构 (cnn→transformer)"
+    novel: "自研架构 / 混合 backbone"
+  C:
+    routine: "换标准 loss (ce→focal)"
+    extend: "多 loss 联合 (ce + distillation)"
+    novel: "自研对比损失 / 自监督目标"
+  D:
+    routine: "换标准增强 (flip/crop)"
+    extend: "自动增强搜索 (AutoAugment)"
+    novel: "生成数据 / 自监督预训练"
+  E:
+    locked: true
+decision_tree:
+  - when: "5 轮内 primary 没动"
+    do:
+      - "看 Tier 状态确认还在 A 档 routine"
+      - "升级到 A-extend 或 B-routine"
+      - "检查 NN_NOTES 是否记录了上一轮假设"
+  - when: "10 轮仍 plateau 且已升到 B/C"
+    do:
+      - "读 references/REFLECT_INDEX.md 看 pending 建议"
+      - "跑 /auto-nn-reflect"
+      - "检查 HUMAN_GUIDANCE.md 阶段路线图是否还合理"
+  - when: "20 轮仍无提升"
+    do:
+      - "回退到最强 baseline 一轮确认复现"
+      - "检查 contract.E_TIER_LOCKED 是否在实验中意外改动"
+      - "考虑开新场景 (rotate 而非 focus)"
+  - when: "loss=NaN 或 loss 不下降"
+    do:
+      - "降 LR 10x 重试"
+      - "检查 build_dataloader 是否归一化"
+      - "读 workspace/build_learner 注册列表确认 cfg[MODEL_ARCH] 命中"
+  - when: "KEEP 全失败"
+    do:
+      - "读 nn-config.yaml keep 段确认 primary_delta / mode"
+      - "检查 contract.test 是否与 ws.evaluate 同口径"
+      - "检查 _runs/results.tsv 表头是否与 contract.metric_key 一致"

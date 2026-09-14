@@ -1,0 +1,76 @@
+# migrate.yaml — workflow=migrate(原 migration+adapter 合并)
+# source_root ≠ repo_root;迁入或接外部框架,二级分流到 port_to_contract 或 workspace_wrapper。
+scenario_id: migrate
+description: source_root ≠ repo_root;迁入老资产或接外部框架
+recognition:
+  has_source_root: true
+  same_dir_as_repo: false
+# PR1: patterns: 仅定义,不接入;PR2 init_o3_abcde.py 会按 source 是否有 contract/ 自动判定
+patterns:
+  port_to_contract:
+    when: "source_root 无 contract/ 目录(旧 migration 路径)"
+    what: "拆数据/指标/模型/loss 到本仓 contract/ + workspace/"
+  workspace_wrapper:
+    when: "source_root 有 contract/ 目录(旧 adapter 路径)"
+    what: "workspace 翻译 cfg ↔ 外部框架 CLI/API,不重写外部逻辑"
+# 原 adapter 的 port_targets / wrapper_contract / protected_paths 都按 pattern 分流
+port_targets:  # port_to_contract 专用
+  prepare_data: "把老 train.py 数据加载逻辑搬到 contract/prepare_data.py"
+  metrics:      "把老 evaluate/ 逻辑搬到 contract/metrics.py"
+  test:         "把老 test/ 验证逻辑搬到 contract/test.py"
+  learner:      "把老 model 定义搬到 workspace/build_learner 装饰的类"
+  objective:    "把老 loss 定义搬到 workspace/build_objective 装饰的类"
+wrapper_contract:  # workspace_wrapper 专用
+  inputs:  ["cfg 全字段"]
+  outputs: ["外部 CLI 命令行 / API 调用"]
+  invariant: "workspace_wrapper 必须无状态;每次调用纯翻译"
+protected_paths:    # workspace_wrapper 专用
+  - "_backend_/**"
+  - "_backend_"
+freedom_levels:
+  A:
+    routine: "保留原 LR / EPOCHS / BATCH_SIZE(暂不改)"
+    extend: "对齐骨架默认超参"
+    novel: "AutoML 调优"
+  B:
+    routine: "保留原模型架构(优先保证复现)"
+    extend: "小幅改 backbone"
+    novel: "换架构(高风险,先确认 baseline 复现)"
+  C:
+    routine: "保留原 loss(优先保证复现)"
+    extend: "加正则项"
+    novel: "换 loss(高风险)"
+  D:
+    routine: "保留原数据增强"
+    extend: "加 baseline 增强"
+    novel: "自研增强"
+  E:
+    locked: true
+decision_tree:
+  # 合并旧 migration + adapter 的 decision_tree;按 pattern 标注(无标注 = 两路共用)
+  - when: "首轮 primary 与源项目历史值差距 > 2pp(port_to_contract)"
+    do:
+      - "检查 contract/prepare_data 与源 train.py 数据加载是否一致(seed / 划分 / 归一化)"
+      - "检查 contract/metrics 与源 evaluate 口径是否一致(accuracy 公式/聚合方式)"
+      - "读 _runs/results.tsv 详情与源 baseline 对比"
+  - when: "primary 与源一致但后续轮未提升"
+    do:
+      - "进入常规 A 档调参流程(同 build)"
+      - "记录原 baseline 作为 keeper 入池的强 baseline"
+  - when: "wrapper 翻译字段不在 cfg 里(workspace_wrapper)"
+    do:
+      - "立即 KeyError(no-fallback);不要 cfg.get 默认值"
+  - when: "外部 CLI 命令失败 / API 抛异常(workspace_wrapper)"
+    do:
+      - "检查 workspace_wrapper 是否漏传必传字段(对比外部框架 docs)"
+      - "读 _backend_/ 源码看 CLI 注册表(parser.add_argument)"
+      - "不要绕过 wrapper 直接 subprocess 调外部 CLI"
+  - when: "本仓 contract 与外部 contract 字段冲突(workspace_wrapper)"
+    do:
+      - "本仓 contract 是真源,外部 contract 仅作参考"
+  - when: "无法定位 contract/ 边界(port_to_contract)"
+    do:
+      - "读模板仓 docs/maintainer/mirror-mechanism.md 确认 contract/workspace 分工"
+      - "拆 prepare_data 优先(数据边界最清晰)"
+      - "metrics 拆完再拆 test(E 档口径定下来)"
+      - "learner/objective 拆分前先建 _backend_/ 包保护不可改代码"

@@ -1,0 +1,50 @@
+{
+  "v": 1,
+  "updated_at": "2026-07-16",
+  "_comment": "Universal framework/task theme → GitHub repo mapping. 不绑业务:任何 mammoth/fashionmnist/cifar 都不在此处。命中逻辑见 executor._seed_repos_lookup(启发式,token in text),5 项封顶。",
+  "frameworks": {
+    "torch": ["pytorch/pytorch"],
+    "pytorch": ["pytorch/pytorch"],
+    "torchvision": ["pytorch/vision"],
+    "timm": ["huggingface/pytorch-image-models"],
+    "transformers": ["huggingface/transformers"],
+    "huggingface": ["huggingface/transformers"],
+    "lightning": ["Lightning-AI/pytorch-lightning"],
+    "pytorch-lightning": ["Lightning-AI/pytorch-lightning"],
+    "kornia": ["kornia/kornia"],
+    "monai": ["Project-MONAI/MONAI"],
+    "stable-baselines3": ["DLR-RM/stable-baselines3"],
+    "sb3": ["DLR-RM/stable-baselines3"],
+    "optuna": ["optuna/optuna"],
+    "wandb": ["wandb/wandb"],
+    "datasets": ["huggingface/datasets"],
+    "xgboost": ["dmlc/xgboost"],
+    "lightgbm": ["microsoft/LightGBM"],
+    "scikit-learn": ["scikit-learn/scikit-learn"]
+  },
+  "task_themes": {
+    "image-classification": ["huggingface/pytorch-image-models", "pytorch/vision"],
+    "classification": ["huggingface/pytorch-image-models"],
+    "object-detection": ["pytorch/vision"],
+    "detection": ["pytorch/vision"],
+    "semantic-segmentation": ["pytorch/vision", "Project-MONAI/MONAI", "kornia/kornia"],
+    "segmentation": ["pytorch/vision", "Project-MONAI/MONAI"],
+    "self-supervised": ["huggingface/pytorch-image-models"],
+    "ssl": ["huggingface/pytorch-image-models"],
+    "nlp": ["huggingface/transformers"],
+    "natural-language-processing": ["huggingface/transformers"],
+    "reinforcement-learning": ["DLR-RM/stable-baselines3"],
+    "rl": ["DLR-RM/stable-baselines3"],
+    "pinn": ["PINNs-Forward/PINN"],
+    "physics-informed": ["PINNs-Forward/PINN"],
+    "few-shot": ["oscarknagg/few-shot"],
+    "fewshot": ["oscarknagg/few-shot"],
+    "tabular": ["dmlc/xgboost", "microsoft/LightGBM"]
+  },
+  "how_to_match": [
+    "token 命中:fingerprint.MODEL_ARCH + fingerprint.task_domain + rationale 三路文本 lowercased 后,任一 token 在 text 中即命中",
+    "顺序:先 frameworks 后 task_themes(框架先于任务),保持 stable 命中序",
+    "去重:full_name 集合 set;5 项封顶(executor 内部 cap,JSON 可更多)",
+    "fallback:文件缺失/JSON 解析失败 → 命中空(返回 []);不抛错"
+  ]
+}

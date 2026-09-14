@@ -1,0 +1,36 @@
+---
+description: auto-nn-* 自然语言/斜杠入口路由；动手前须 Read 对应 SKILL.md
+alwaysApply: true
+---
+
+# auto-nn-* 技能 — 自然语言入口
+
+## 硬门禁
+
+执行 NN 实验域任务（训练、改 workspace/contract、auto-run、clear apply、modify 改能力）前：
+
+1. **必须先 Read** `~/.cursor/skills/auto-nn-<name>/SKILL.md`（或维护仓 `skills/post-migration|maintainer/` 同源）。
+2. **必须先 Read** 业务仓 `docs/nn-routing/intent-map.md`（若 cwd 为业务仓根）。
+3. **禁止**未 Read SKILL 就：运行 `train.py`、`auto-nn-run.sh`、改 `workspace/`/`contract/`、`clear --apply`。
+
+斜杠 `/auto-nn-*` 与自然语言 **同等**；均须 Read SKILL。
+
+## 路由顺序
+
+1. `docs/nn-routing/intent-map.md` 触发词
+2. SKILL frontmatter `NOT:` 排斥语
+3. **策略 D**（intent-map §歧义策略 D）
+
+## 歧义澄清（只问一句，≤3 选项；跟用户语言）
+
+- 实验：A) 手跑一轮 / run one round by hand  B) 多轮自动 batch / multi-round auto batch
+- 修改：A) 日常扫参（manual-run） / everyday sweep  B) 改能力（modify） / change capabilities
+- 查看：A) 快速看台账（check） / quick ledger  B) 完整分析（analyse） / full analysis
+
+## 对用户
+
+路由成功后 **一句人话**确认（括号内可提斜杠名一次）；语言跟用户走。内部 checklist 不对用户念。
+
+## 边界
+
+本规则只管 **进哪个技能**。输出人话见 `skills-plain-language.mdc`；技能正文逻辑不改。
