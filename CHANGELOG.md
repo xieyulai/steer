@@ -7,42 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [3.4.0] - 2026-09-26
 
-- docs: README 顶栏补上 STEER 全称（Steerable and Traceable autonomous Experimentation for Evidence-governed AI Research）
-- docs: 新增知乎推广短文底稿（含图床封面与配图说明）
+### Added
+
+- feat(scaffold): 渲染器重做——撤销 TSV 双写，新增场景清单表+nn-config 机读题对齐
+- feat(scaffold): 落位层渲染器——resolved lock → README 块/TSV 表头/起步尺子 intent（F1/F2/F5/F6）
+- feat(migrate): new-project.sh --answers headless 接线 + M0 策略消费（D3/D5，修 P8）
+- feat(init): init_answers CLI --source-root/--pattern + migration-diff.json（D4 出仓）
+- feat(init): migration-diff 差异表 + 源对齐措辞反转（D4.2，修 P7）
+- feat(init): source_probe 源现状静态提取（D4.1）
+- feat(init): M0 适配策略题 + validate_answers pattern 参数（D3）
+- feat(migrate): AST 闭包检查 check_copy_closure（D2，修 P3 检测半边）
+- feat(migrate): pattern 分流单一真源落 migrate.yaml（D6，修 P5/P6）
 
 ### Fixed
 
-- ci: GitHub Actions pytest 补上 numpy / torchvision，并分开跑根目录 `tests/` 与 `template/package/scripts/tests/`（两边有同名测试文件，一次 collect 会互相踩）；包内测试补 `conftest` 让 `lib.*` 可导入
-- test: 删掉根目录里已退役的旧 preset / 旧 5×3 表头 / 与包内重复的测试副本；`manage_goal clear` 与 overlay A–D 对齐现行实现
-- ci: 包内测试补 `PYTHONPATH`（`template/package` + `scripts/`），否则 `from lib` / `from contract` 在 CI 里 collect 失败
-
-### Changed
-
-- docs: README 按上手顺序重排；27/24 问对照表改到文末附录并按主题归类（含信息权限三问）；clone 目录改为 `steer`
-- 开训按家目录 `~/.gpus` 收紧占用：有文件才限制能用的卡，没建该文件仍用本机全部卡；空文件或与本机对不上仍拒绝
-- repo: Gitee 仓库从 `auto-nn` 改名为 [`steer`](https://gitee.com/xieyulai/steer)
-- docs: README 17 技能按立项 / 立尺 / 搜索 / 审查 / 改能力 / 维护分组
-- docs: README 嵌入 [steer-cifar](https://github.com/xieyulai/steer-cifar) 约 20 轮成绩轨迹图（`.github/assets/steer-cifar-traj.png`）
-- docs: 剩余中文文件名改为英文：`AUTO-NN-package-docs-checklist.md`、`init-conversation-guide.md`、`nn-literature/atomic-tools.md`，引用一并更新
-- docs: README 加上探索空间图（`.github/assets/space-grid.png`）及横轴/纵轴/文献虚线/E 题面/风格条说明
-- docs: CIFAR 原始训练仓仍是 [kuangliu/pytorch-cifar](https://github.com/kuangliu/pytorch-cifar)；接好之后的示例仓才是 [xieyulai/steer-cifar](https://github.com/xieyulai/steer-cifar)
-- docs: README 五步流程图改为仓内 `.github/assets/flow-skills.png`，不再走图床
-- docs: README 给外人看：前置与 CIFAR 接入流程写细；去掉「说人话」等内部用语；完整跑例另开独立仓
-- docs: README 全程技能驱动：`/auto-nn-init <你的仓库路径>` 用占位符；更新只写 `/auto-nn-update`，不再让用户 export 路径或跑 new-project.sh
-- docs: `AUTO-NN-白皮书.md` / `技能术语表.md` 改名为 `AUTO-NN-whitepaper.md` / `skill-glossary.md`，引用一并更新
-- 对人输出跟用户语言走：术语表加 In English 列；立项四段式/进度抬头有英文外壳；说人话规则与路由澄清双语。不翻译 PROTOCOL / 技能内部正文 / 脚本表头。
-- docs: 去掉 `nn-doctor/g-human.md`、`nn-modify/doctor-routing.md`（内容已在 fail-routing / 技能里）；mammoth 样例只留 `workspace/__init__.py` 与 `framework_binding.yaml`（其余 contract 演示 py 无测试/脚本读取）
-- docs: 去掉 `nn-literature/README.md`（纯索引）、`examples/adapter-mammoth/README.md`（过期占位业务 README）、`nn-modify/explore-handoff.md`（边界已收进 modify 技能）
-- README: 默认英文首页。中文版从 `README.zh-CN.md` 改名为 `README-zh.md`（Gitee 对 `README.zh-CN.md` 会按界面语言自动切走英文首页）；clone 地址改为本仓 URL；Issues 指向 Gitee
-- skills: 业务专属参考 `auto-nn-modify/references/bm-report-reference-model-reproduction.md`（BM-Case1 复现说明）及其在 SKILL / docs 的入口不再随模板发布；init 参考里的旧仓命名举例改为中性名
-- repo: 从原维护仓拆分为独立开源仓 **auto-nn**（全新 git 历史，功能与 v3.3.0 模板完全一致；测试集与门禁结果对齐原仓基线）
-- docs: 只保留**必要**文档（27 个文件）：白皮书、术语表、init 对话指南、包文档维护检查清单，以及被技能 / 脚本 / 测试点名读取的 `nn-doctor/`、`nn-modify/`、`nn-literature/atomic-tools.md`、`archive/{metric-and-keep-system,readme-sync-after-modify}`、`maintainer/mirror-mechanism`、`examples/adapter-mammoth/`。流程图（含生成脚本）、探索空间、方法论总览、技能维护检查清单、ADR、设计 spec / plan、日期记录、论文与实验材料均不随仓发布；代码 / PROTOCOL / SKILL / 保留文档中约 110 处「设计见 docs/superpowers/specs/…」类引注一并删除（仅注释 / 文案，不动逻辑），并修正 7 处相对路径写错的文内链接
-- test: `test_init_answers.py` 的 CSI 完整答卷举例改为包内 fixture（`scripts/tests/fixtures/csi-short-code.answers.yaml`），不再依赖维护仓 `docs/` 之外的文件
-
-### Added
-- 开源门面：STEER logo（`.github/assets/logo-{light,dark}.png`，README 按系统明暗自动切换）、`README.md`（English 默认）+ `README-zh.md`（中文；不用 README.zh-CN.md，避免 Gitee 按语言自动切走首页）、`LICENSE`（Apache-2.0）+ `NOTICE`、`CONTRIBUTING.md`、`docs/README.md` 文档地图、GitHub Actions CI（pytest × py3.10/3.12 + 契约 lint + install dry-run）、Issue / PR 模板
+- fix(skeleton): 骨架三缺陷——cfg 静默默认强读、袋内 contract 显式传参
+- fix(contract): lib.metric_units 裸导入恢复 try/except 防御（修 contract_sanity FAIL）
+- fix(guard): S3 检查接受框架分发器 dispatch_test_call 为等价权威链
+- fix(scaffold): 交付前自删 scripts/new-project.sh（F3，消除与 template_residuals 门禁自相矛盾）
+- fix(skeleton): 三骨架 contract/test.py 补 adapter_runner 形参，与门面对齐
+- fix(governance): contract 未就绪时 regen 降级为跳过+警告，不再 rc=1 连坐 new-project（Step 0.4）
+- fix(init): overlay/framework.md 重复注记截断 5×3 表致 E 行丢失；注记挪生成器 header + drift-lock 补查 E
+- fix(migrate): full_copy 复制源代码不套骨架 + port 只读参考（D1/D2/D7，修 P1-P4）
 
 ## [3.3.0] - 2026-09-07
 

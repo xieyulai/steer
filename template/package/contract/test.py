@@ -55,6 +55,7 @@ def _official_forward(learner, ws, batch, *, shared_context: dict):
 def run(
     learner, ws, *, shared_context: dict,
     adapter_runner: Callable[[], dict[str, float]] | None = None,
+    contract=None,
 ) -> dict[str, float]:
     """官方台账评估。
 
@@ -62,6 +63,7 @@ def run(
         learner: 默认非 None。ADAPTER 模式可传 None (此时必须有 adapter_runner)。
         adapter_runner: ADAPTER 模式业务仓注册的可调用对象,返回 dict[str, float]。
                        None 时走原 supervised 路径(现状)。
+        contract: 门面显式传入的 Contract 实例（ADR-11：禁走 shared_context）。
 
     Returns:
         dict: 指标字典（必须与 contract.metrics.METRIC_KEYS 一致）

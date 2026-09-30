@@ -47,7 +47,7 @@ agent 对用户只说**人话主题 + 进度**；内部按右列编码逐项推�
 
 **全阶段** HARD-GATE 编号格式为 **`<块><n>-<slug>`**（如 `H1-legacy-artifacts`、`E4-train-eval`）。问话、用户回复（`编号=①`）、F1-contract 汇总表行名**均用 slug**。
 
-**宏观顺序（入口 A）**：**P0 → D1–D2 → I1–I3 → D3–D4 → H → T → E1 → G → E2–E9 → O → F**（**D1–D3 先于 H1–H3**；**信息权限 I 在 D2 之后、D3 之前**（[阶段 I](#阶段-i信息权限谁能看什么-d2-之后d3-之前)）；**G1/G2 在 E1 之后、E6 之前**）。**入口 B**：**P0 → D1–D2 → I1–I3 → D3–D4 → T → E1 → G → E2–E9 → O → F**（无 H）。**E4-train-eval**、**E8-checkpoint** 须在 **T2-callchain** 之后。
+**宏观顺序（入口 A）**：**P0 → M0（仅 full_copy，准备步） → D1–D2 → I1–I3 → D3–D4 → H → T → E1 → G → E2–E9 → O → F**（**D1–D3 先于 H1–H3**；**信息权限 I 在 D2 之后、D3 之前**（[阶段 I](#阶段-i信息权限谁能看什么-d2-之后d3-之前)）；**G1/G2 在 E1 之后、E6 之前**）。**入口 B**：**P0 → D1–D2 → I1–I3 → D3–D4 → T → E1 → G → E2–E9 → O → F**（无 H）。**E4-train-eval**、**E8-checkpoint** 须在 **T2-callchain** 之后。
 
 **用户心智顺序**（与步号一致，入口 A）：对齐项目 → **场景+数据（含信息权限）** → 历史清理 → 怎么训 → **主指标** → **实验目标** → **评估其余（含场景探索方案）** → 机器 → 签字。
 
@@ -57,6 +57,7 @@ agent 对用户只说**人话主题 + 进度**；内部按右列编码逐项推�
 
 | # | 编号 | 人话 |
 |---|------|------|
+| 准 | **M0-adapter-strategy**（仅 full_copy；准备步不计 27） | 适配策略：keep_all 照抄 / hybrid 保留 metrics·runtime 重写 prepare_data·test（推荐）/ rewrite 重写全套 |
 | 1 | **D1-scenario-inventory** | **场景清单**（数据与指标 / 方法族 / 默认配置；P0 后第一项） |
 | 2 | **D2-data-split** | 数据根 + 划分表 + 每场景 OFFICIAL_TEST |
 | 3 | **I1-train-consumes** | **训练许用材料**：全部 / 只训练份（哪些只评）/ 不读数据文件 |

@@ -42,6 +42,7 @@ from lib.init_answers import (  # noqa: E402
     validate_answers,
 )
 from lib.init_qa_log import log_path  # noqa: E402
+import source_probe  # noqa: E402
 
 _TAG = "[init-answers]"
 
@@ -55,7 +56,7 @@ def _report(res: Resolved) -> str:
     if res.resolved:
         lines.append("  已解析（按步序）：")
         for item in sorted(res.resolved.values(), key=lambda x: (x.step is None, x.step or 0)):
-            ui = "跳卡" if item.skip_ui else ("改回确认" if item.confirm_required else "照问")
+            ui = "跳卡" if item.skip_ui else ("按卷确认" if item.confirm_required else "照问")
             step = f"第 {item.step} 步" if item.step is not None else "-"
             choice = f" choice={item.choice}" if item.choice else ""
             lines.append(f"    {step:<8} {item.slug:<24} {item.key:<8} {ui}{choice}  lock={item.lock}")
@@ -97,6 +98,10 @@ def main(argv: list[str] | None = None) -> int:
     pv.add_argument("--repo-root", type=Path, default=None, help="目标业务仓根（--write-resolved 时必填）")
     pv.add_argument("--write-resolved", action="store_true", help="写 <repo_root>/.auto-nn/init-answers.resolved.json")
     pv.add_argument("--json", action="store_true", help="stdout 输出 JSON 而非人读报告")
+    pv.add_argument("--source-root", type=Path, default=None,
+                    help="migrate 源项目根(触发探针 + 差异表)")
+    pv.add_argument("--pattern", choices=("full_copy", "port_to_contract"), default=None,
+                    help="显式指定 migrate pattern(缺省按源有无 contract/ 判定)")
 
     pt = sub.add_parser("template", help="输出示例清单（只含允许跳问的题）")
     pt.add_argument("--workflow", choices=("build", "migrate", "update"), required=True)
@@ -179,7 +184,14 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         doc = load_answers_file(args.answers)
-        res = validate_answers(registry, doc, workflow=args.workflow, answers_file=str(args.answers))
+        pattern = args.pattern
+        if args.workflow == "migrate" and args.source_root is not None and pattern is None:
+            pattern = "full_copy" if (args.source_root / "contract").is_dir() else "port_to_contract"
+        probe_data = (source_probe.probe(args.source_root)
+                      if args.workflow == "migrate" and args.source_root is not None else None)
+        res = validate_answers(registry, doc, workflow=args.workflow,
+                               answers_file=str(args.answers),
+                               pattern=pattern, source_probe=probe_data)
     except AnswersError as exc:
         print(f"{_TAG} {exc}", file=sys.stderr)
         return 2
@@ -193,6 +205,16 @@ def main(argv: list[str] | None = None) -> int:
         out = args.repo_root.resolve() / RESOLVED_REL
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(res.to_dict(), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        if res.migration_diff:
+            diff_out = args.repo_root.resolve() / ".auto-nn" / "migration-diff.json"
+            diff_out.parent.mkdir(parents=True, exist_ok=True)
+            diff_out.write_text(json.dumps({
+                "version": 1,
+                "source_root": str(args.source_root) if args.source_root else None,
+                "rows": res.migration_diff,
+                "probe_notes": probe_data.get("notes", []) if probe_data else [],
+            }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            res.warnings.append(f"已写 {diff_out}")
         res.warnings.append(f"已写 {out}")
     if args.json:
         print(json.dumps(res.to_dict(), ensure_ascii=False, indent=2))

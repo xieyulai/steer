@@ -2614,11 +2614,14 @@ def check_test_authority(repo_root: str | Path) -> list[TestAuthorityViolation]:
             ))
 
     if train_py.is_file():
-        if "contract.test(" not in train_py.read_text(encoding="utf-8"):
+        train_text = train_py.read_text(encoding="utf-8")
+        # 字面 contract.test( 或框架分发器 dispatch_test_call(（scripts/lib/train_branch
+        # 内部两条分支均只调 contract.test，权威链等价）都算满足 S3。
+        if "contract.test(" not in train_text and "dispatch_test_call(" not in train_text:
             violations.append(TestAuthorityViolation(
                 rule="S3",
                 detail="train.py 未调用 contract.test()",
-                fix="训末以 contract.test() 作为官方指标来源，再传入 finalize_run",
+                fix="训末以 contract.test()（或框架分发器 dispatch_test_call）作为官方指标来源，再传入 finalize_run",
             ))
     else:
         violations.append(TestAuthorityViolation(

@@ -249,7 +249,12 @@ def sync_ledger(
         raw_old_lines = [ln for ln in jsonl_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
         jsonl_before = len(raw_old_lines)
 
-    metric_key = str(_load_contract(repo_root).metric_key)
+    contract = _load_contract(repo_root)
+    if contract is None:
+        # _load_contract 未就绪返回 None（不再 raise）；sync 无主指标键无法进行，保持 fail-loud
+        raise SystemExit("[sync_ledger] 错误: contract 未就绪，无法确定主指标键；先迁移 contract 再 sync")
+
+    metric_key = str(contract.metric_key)
 
     built: list[dict[str, Any]] = []
     missing_skips = 0

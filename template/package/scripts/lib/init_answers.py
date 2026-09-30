@@ -237,6 +237,8 @@ class Resolved:
     unknown_keys: list[str] = field(default_factory=list)
     info_perm_flags: list[str] = field(default_factory=list)
     confirm_only: bool = False
+    pattern: str | None = None
+    migration_diff: list = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -256,6 +258,8 @@ class Resolved:
             "unknown_keys": list(self.unknown_keys),
             "info_perm_flags": list(self.info_perm_flags),
             "confirm_only": self.confirm_only,
+            "pattern": self.pattern,
+            "migration_diff": list(self.migration_diff),
         }
 
 
@@ -524,10 +528,43 @@ def project_info_perm_flags(items: dict[str, ResolvedItem]) -> list[str]:
     return flags
 
 
-def validate_answers(registry: Registry, doc: dict[str, Any], *, workflow: str, answers_file: str = "") -> Resolved:
+# D4:源对齐题 → 源码落点(「（人工核对）」前缀 = 探针提不出,须人看)
+_SOURCE_LANDINGS: dict[str, str] = {
+    "D2-data-split": "contract/prepare_data.py",
+    "E1-metrics": "contract/metrics.py",
+    "I1-train-consumes": "（人工核对）contract/prepare_data.py / contract/test.py",
+    "I2-official-path": "（人工核对）contract/test.py",
+    "T2-callchain": "（人工核对）train.py",
+    "E3-official-test": "（人工核对）contract/test.py",
+    "E4-train-eval": "（人工核对）train.py",
+}
+
+
+def migration_diff(registry: Registry, res: Resolved, probe_data: dict) -> list[dict]:
+    """源 vs 答卷差异表:7 道源对齐题逐条对照(match 一律 None——宁缺毋假,不作断言)。"""
+    rows: list[dict] = []
+    for slug, landing in _SOURCE_LANDINGS.items():
+        item = res.resolved.get(slug)
+        row = {
+            "slug": slug,
+            "source_value": probe_data.get(slug),
+            "answer_lock": item.lock if item else None,
+            "match": None,
+            "landing": landing,
+        }
+        if item is None:
+            row["note"] = "未答卷(将以源/交互为准)"
+        rows.append(row)
+    return rows
+
+
+def validate_answers(registry: Registry, doc: dict[str, Any], *, workflow: str,
+                     answers_file: str = "", pattern: str | None = None,
+                     source_probe: dict | None = None) -> Resolved:
     entry = registry.entry_for(workflow)
     confirm_only = bool(doc.get("confirm_only"))
     res = Resolved(workflow=workflow, entry=entry, answers_file=answers_file, confirm_only=confirm_only)
+    res.pattern = pattern
     version = doc.get("version")
     if version is None:
         res.errors.append("清单缺 version 字段")
@@ -580,10 +617,10 @@ def validate_answers(registry: Registry, doc: dict[str, Any], *, workflow: str, 
             notes.append("草稿标注为猜测，须现场问")
             res.warnings.append(f"「{key}」（{q.slug}）：草稿为猜测，不跳卡")
         if confirm_required:
-            notes.append("迁入源对齐题：须出卡片「清单说 X，源项目是 Y」，不得静默跳问")
-            res.warnings.append(f"「{key}」（{q.slug}）：迁入源对齐题，清单值须现场改回确认")
+            notes.append("迁入源对齐题：弹卡措辞=「推荐=探针源值 X，你填了 Y，确认按 Y 立项」；显式答卷必须赢")
+            res.warnings.append(f"「{key}」（{q.slug}）：迁入源对齐题，按卷确认（显式答卷优先）")
         elif confirm_only and workflow == "migrate" and q.source_aligned:
-            notes.append("confirm_only：源对齐差异并入签字表，本步不弹卡")
+            notes.append("confirm_only：源对齐差异已入 migration-diff（.auto-nn/migration-diff.json），本步不弹卡")
         if q.depends_on:
             notes.append(f"依赖 {', '.join(q.depends_on)} 确认后才套用")
         skip_ui = not confirm_required and not guessed
@@ -603,6 +640,8 @@ def validate_answers(registry: Registry, doc: dict[str, Any], *, workflow: str, 
 
     if confirm_only:
         needed = ["P0-project-brief"] + steps_for(registry, workflow)
+        if workflow == "migrate" and pattern == "full_copy":
+            needed.append("M0-adapter-strategy")
         missing = [s for s in needed if s not in res.resolved]
         if missing:
             res.errors.append(
@@ -613,6 +652,17 @@ def validate_answers(registry: Registry, doc: dict[str, Any], *, workflow: str, 
                 res.warnings.append("confirm_only 含猜测题：那些题仍现场问，不能只签字")
             else:
                 res.warnings.append("confirm_only：计步题全覆盖，对人只出口径汇总签字")
+
+    if workflow == "migrate" and pattern == "port_to_contract" \
+            and "M0-adapter-strategy" in res.resolved:
+        res.warnings.append("「适配策略」（M0-adapter-strategy）：M0 仅 full_copy 计步，port_to_contract 不问")
+
+    if workflow == "migrate" and source_probe:
+        res.migration_diff = migration_diff(registry, res, source_probe)
+        manual = sum(1 for r in res.migration_diff if r["landing"].startswith("（人工核对）"))
+        res.warnings.append(
+            f"migration-diff：{len(res.migration_diff)} 条源对齐已入差异表"
+            f"（其中 {manual} 条需人工核对）")
 
     res.errors.extend(_contradictions(registry, res.resolved))
     if res.errors:

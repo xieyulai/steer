@@ -1,6 +1,6 @@
 """答案清单校验器。
 
-CSI 清单（migrate）：源对齐题改回确认、其余跳问、INFO_PERM 投影；PINN 清单（build）：8 题全跳问 + strict；
+CSI 清单（migrate）：源对齐题按卷确认、其余跳问、INFO_PERM 投影；PINN 清单（build）：8 题全跳问 + strict；
 坏清单三条错误；未知键 / 入口不符两条警告；template 可回读；lock 与 resolved 一致；题序 27/24 且与
 hard-gate-reference「编号速查」一致。
 """
@@ -72,7 +72,7 @@ def _run(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
 
 def test_registry_shape(registry):
     slugs = [q.slug for q in registry.questions]
-    assert len(slugs) == 29 and len(set(slugs)) == 29  # 27 计步 + P0 + F1
+    assert len(slugs) == 30 and len(set(slugs)) == 30  # 27 计步 + M0 准备步 + P0 + F1
     assert {"I1-train-consumes", "I2-official-path", "I3-other-info-rules"} <= set(slugs)
     skippable = {q.slug for q in registry.questions if q.skip_allowed}
     assert skippable == {
@@ -121,7 +121,7 @@ def test_csi_migrate_resolves(registry):
     r = res.resolved
     assert set(r) == {"I1-train-consumes", "I2-official-path", "I3-other-info-rules", "G1-experiment-mode",
                       "G2-goal-value", "O1-time-budget", "O2-gpus-parallel", "O4-repro-determinism"}
-    # 源对齐题：迁入须改回确认，不跳卡
+    # 源对齐题：迁入须按卷确认，不跳卡
     for s in ("I1-train-consumes", "I2-official-path"):
         assert r[s].confirm_required and not r[s].skip_ui
     for s in ("I3-other-info-rules", "G1-experiment-mode", "G2-goal-value", "O1-time-budget",
@@ -274,10 +274,10 @@ CSI_CONFIRM = SCRIPTS / "tests" / "fixtures" / "csi-short-code.answers.yaml"
 @pytest.mark.skipif(not CSI_CONFIRM.is_file(), reason="CSI 完整答卷举例 fixture 缺失")
 def test_csi_confirm_only_covers_all_migrate_steps(registry):
     doc = yaml.safe_load(CSI_CONFIRM.read_text(encoding="utf-8"))
-    res = IA.validate_answers(registry, doc, workflow="migrate")
+    res = IA.validate_answers(registry, doc, workflow="migrate", pattern="full_copy")
     assert res.ok, res.errors
     assert res.confirm_only
-    needed = ["P0-project-brief"] + IA.steps_for(registry, "migrate")
+    needed = ["P0-project-brief"] + IA.steps_for(registry, "migrate") + ["M0-adapter-strategy"]
     assert set(res.resolved) == set(needed)
     assert all(i.skip_ui and not i.confirm_required for i in res.resolved.values())
     assert "F1-contract" not in res.resolved
@@ -486,4 +486,66 @@ def _confirm_stub_answers(*, i1: dict, t1: dict) -> dict:
         "复现随机性": {"seed": 42},
     }
     return needed
+
+
+def test_m0_required_only_for_full_copy(registry):
+    doc = yaml.safe_load(CSI_CONFIRM.read_text(encoding="utf-8"))
+    doc["answers"]["适配策略"] = {"choice": "B"}
+    res = IA.validate_answers(registry, doc, workflow="migrate", pattern="full_copy")
+    assert res.ok, res.errors
+    assert res.resolved["M0-adapter-strategy"].lock == "M0=hybrid"
+    assert res.pattern == "full_copy"
+    del doc["answers"]["适配策略"]
+    res2 = IA.validate_answers(registry, doc, workflow="migrate", pattern="full_copy")
+    assert not res2.ok
+    assert any("M0-adapter-strategy" in e for e in res2.errors)
+    res3 = IA.validate_answers(registry, doc, workflow="migrate", pattern="port_to_contract")
+    assert res3.ok and "M0-adapter-strategy" not in res3.resolved
+    doc["answers"]["适配策略"] = {"choice": "A"}
+    res4 = IA.validate_answers(registry, doc, workflow="migrate", pattern="port_to_contract")
+    assert res4.ok and res4.resolved["M0-adapter-strategy"].lock == "M0=keep_all"
+    assert any("M0 仅 full_copy 计步" in w for w in res4.warnings)
+
+
+def test_cli_migrate_source_root_writes_diff(tmp_path):
+    src = tmp_path / "src"
+    (src / "contract").mkdir(parents=True)
+    (src / "contract" / "prepare_data.py").write_text("SEED = 7\n", encoding="utf-8")
+    (src / "contract" / "metrics.py").write_text("METRIC_KEYS = ['nmse']\n", encoding="utf-8")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    r = _run("validate", "--answers", str(CSI_CONFIRM), "--workflow", "migrate",
+             "--repo-root", str(repo), "--write-resolved", "--source-root", str(src),
+             "--pattern", "full_copy")
+    assert r.returncode == 0, r.stdout + r.stderr
+    diff = json.loads((repo / ".auto-nn" / "migration-diff.json").read_text(encoding="utf-8"))
+    d2 = next(row for row in diff["rows"] if row["slug"] == "D2-data-split")
+    assert d2["source_value"] == {"constants": {"SEED": 7}}
+    assert d2["landing"] == "contract/prepare_data.py"
+    resolved = json.loads((repo / ".auto-nn" / "init-answers.resolved.json").read_text(encoding="utf-8"))
+    assert resolved["pattern"] == "full_copy" and len(resolved["migration_diff"]) == 7
+
+
+def test_migration_diff_rows(registry):
+    doc = yaml.safe_load(CSI_CONFIRM.read_text(encoding="utf-8"))
+    probe_data = {
+        "source_root": "/tmp/fake-src",
+        "D2-data-split": {"constants": {"SEED": 42}},
+        "E1-metrics": {"metric_keys": ["nmse"], "auxiliary_keys": None},
+        "I1-train-consumes": None, "I2-official-path": None, "T2-callchain": None,
+        "E3-official-test": None, "E4-train-eval": None,
+        "notes": [],
+    }
+    res = IA.validate_answers(registry, doc, workflow="migrate", pattern="full_copy",
+                              source_probe=probe_data)
+    assert res.ok, res.errors
+    assert len(res.migration_diff) == 7
+    by_slug = {r["slug"]: r for r in res.migration_diff}
+    assert by_slug["D2-data-split"]["source_value"] == {"constants": {"SEED": 42}}
+    assert by_slug["D2-data-split"]["landing"] == "contract/prepare_data.py"
+    assert by_slug["T2-callchain"]["landing"].startswith("（人工核对）")
+    assert all(r["match"] is None for r in res.migration_diff)
+    assert any("migration-diff：7 条" in w for w in res.warnings)
+    res2 = IA.validate_answers(registry, doc, workflow="migrate", pattern="full_copy")
+    assert res2.migration_diff == []  # 无探针 → 不生成（行为不变）
 

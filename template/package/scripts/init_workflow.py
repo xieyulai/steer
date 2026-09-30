@@ -15,7 +15,7 @@ old init_scenarios.classify(), but exposes a single axis (workflow only).
 PR2 will add detect() that combines workflow + object_type in one call.
 
 Pattern split (MIGRATE only): old scenario 'migration' → port_to_contract;
-old scenario 'adapter' → workspace_wrapper. PR1 keeps the old split
+old scenario 'adapter' → full_copy(原 workspace_wrapper). PR1 keeps the old split
 gates inside the scenarios/migrate.yaml `patterns:` key, not yet
 queried by code.
 """
@@ -78,7 +78,7 @@ class DetectionResult:
     """
     workflow: Workflow
     object_type: str  # "data" | "code" | "framework"
-    pattern: str | None = None  # only set when workflow=MIGRATE: "port_to_contract" | "workspace_wrapper"
+    pattern: str | None = None  # only set when workflow=MIGRATE: "port_to_contract" | "full_copy"
     framework_kind: str | None = None  # "mammoth" | "lightning" | ... | None
 
 
@@ -155,7 +155,7 @@ def detect(repo_root: Path | str, source_root: Path | str | None,
     pattern = None
     if workflow == Workflow.MIGRATE and source_root is not None:
         src = Path(source_root)
-        pattern = "workspace_wrapper" if (src / "contract").exists() else "port_to_contract"
+        pattern = "full_copy" if (src / "contract").exists() else "port_to_contract"
 
     # v1.33.0 — 推断 framework_kind(只在 object_type=framework 时)
     framework_kind_value: str | None = None

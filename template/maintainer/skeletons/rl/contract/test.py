@@ -1,6 +1,8 @@
 """RL 台账占位：含 mode='knn' 以满足 G-评估 A1；迁项目后实现完整评估。"""
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from contract.metrics import AUXILIARY_KEYS, METRIC_KEYS
 from contract.prepare_data import prepare_shared_context
 from contract.runtime import (
@@ -11,9 +13,21 @@ from contract.runtime import (
 )
 
 
-def run(learner, ws, *, shared_context: dict) -> dict[str, float]:
+def run(
+    learner, ws, *, shared_context: dict,
+    adapter_runner: Callable[[], dict[str, float]] | None = None,
+    contract=None,
+) -> dict[str, float]:
+    """contract 由门面显式传入（ADR-11：禁经 shared_context 袋内传递）。"""
+    # ADAPTER 模式: learner=None + adapter_runner 注册 → 转发业务仓出分(与门面对齐)
+    if learner is None:
+        if adapter_runner is not None:
+            return adapter_runner()
+        raise ValueError(
+            "contract.test.run: learner=None 且 adapter_runner=None,"
+            " 请显式指定 ADAPTER 路径或确保 rl 路径传 learner"
+        )
     eval_mode = "knn"
-    contract = shared_context.get("contract")
     if contract is not None:
         prepare_shared_context(contract, shared_context)
 

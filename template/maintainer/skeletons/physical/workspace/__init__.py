@@ -120,6 +120,12 @@ class Workspace(ExperimentBase):
     # ── build_learner ──────────────────────────────────────────
     def build_learner(self, cfg: dict[str, Any], source=None):
         """构建 PINN 模型，返回 (nn.Module, metadata_dict)。"""
+        if not LEARNER_REGISTRY:  # 空表先导航:骨架没注册任何模型,默认超参必落空,别让人对着 KeyError 猜
+            raise KeyError(
+                "PINN 模型注册表为空：本骨架尚未注册任何模型。"
+                "请在 workspace/__init__.py 参照上方注释示例，用 @register_learner(\"名字\") 注册模型类"
+                "（实现 __init__(cfg) 与 forward），并把 train.py 顶部超参 MODEL_ARCH 设为该注册名，然后重跑。"
+            )
         arch = cfg.get("MODEL_ARCH", "mlp")
         if arch not in LEARNER_REGISTRY:
             raise KeyError(f"未知 PINN 模型: {arch}（可用: {list(LEARNER_REGISTRY.keys())}）")
@@ -129,6 +135,12 @@ class Workspace(ExperimentBase):
     # ── build_objective ────────────────────────────────────────
     def build_objective(self, cfg: dict[str, Any]):
         """构建物理约束损失，返回 (nn.Module, metadata_dict)。"""
+        if not OBJECTIVE_REGISTRY:  # 空表先导航:骨架没注册任何损失,默认超参必落空,别让人对着 KeyError 猜
+            raise KeyError(
+                "物理约束损失注册表为空：本骨架尚未注册任何损失。"
+                "请在 workspace/__init__.py 参照上方注释示例，用 @register_objective(\"名字\") 注册损失类，"
+                "并在 train.py 顶部超参区补 LOSS=注册名，然后重跑。"
+            )
         loss_name = cfg.get("LOSS", "pde_residual")
         if loss_name not in OBJECTIVE_REGISTRY:
             raise KeyError(f"未知物理约束损失: {loss_name}（可用: {list(OBJECTIVE_REGISTRY.keys())}）")
@@ -289,3 +301,20 @@ class Workspace(ExperimentBase):
 def create_workspace(cfg: dict[str, Any]) -> Workspace:
     """工厂函数：创建 Workspace 实例。"""
     return Workspace()
+
+
+# ── train.py 入口分桶接口（v1.33.0）────────────────────────────────
+# train.py import get_workspace_kind/get_training_mech；骨架无注册表，
+# 固定默认（EVALUATE_LEARNER + NATIVE loop）。需 ADAPTER 等分桶时参照
+# package 版 register_workspace_kind 自行注册。
+from scripts.lib.train_branch_types import MetricsShape, TrainingMech
+
+
+def get_workspace_kind(workspace_name: str) -> MetricsShape:
+    """骨架无 kind 注册表：一律 EVALUATE_LEARNER。"""
+    return MetricsShape.EVALUATE_LEARNER
+
+
+def get_training_mech(workspace_name: str) -> TrainingMech:
+    """骨架无 mech 注册表：一律 NATIVE loop。"""
+    return TrainingMech.NATIVE

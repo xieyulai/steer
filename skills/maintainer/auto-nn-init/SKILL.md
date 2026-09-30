@@ -37,14 +37,14 @@ flowchart TB
 
 | 入口 | 阶段 1 主题顺序 | 共几步 | 目标目录 |
 |------|----------------|--------|----------|
-| **A 迁入** | 对齐 → 场景与数据（前两问）→ **信息权限** → 场景与数据（后两问）→ 旧资产清理 → 训练方式 → **主指标 → 实验目标** → 评估与其余成绩规则 → 运行设置 → 签字 | **27** | **必须** `new-project.sh` 新建，从旧项目选择性移植；禁止 `cp -r` 整包、禁止原地改旧仓 |
+| **A 迁入** | 对齐 → 场景与数据（前两问）→ **信息权限** → 场景与数据（后两问）→ 旧资产清理（先 M0 适配策略，仅 full_copy）→ 训练方式 → **主指标 → 实验目标** → 评估与其余成绩规则 → 运行设置 → 签字 | **27** | **必须** `new-project.sh` 新建，从旧项目选择性移植；禁止 `cp -r` 整包、禁止原地改旧仓 |
 | **B 立项** | 对齐 → 场景与数据（前两问）→ **信息权限** → 场景与数据（后两问）→ 训练方式 → **主指标 → 实验目标** → 评估与其余成绩规则 → 运行设置 → 签字 | **24** | `new-project.sh`（BUILD；标记 `# greenfield`） |
 
 **铁律**：签字（F1）**不等于**完成；完成 = 跑验收脚本 exit 0 **且** 短训通过。阶段 0–1 **只读**，签字前不改任何代码。
 
 **对照两臂**：各走一遍完整立项。答卷只差训练「可以加」里有没有 **场监督 data-loss**（常见可试；不另弹卡片）。禁止克隆后改合同开关、禁止用改能力造对照臂。说明书写必须留着什么、可以加什么；不要把诚实臂讲成「不许偷看 / 不许抄场」。工作区可以预留场监督选项、默认不用；开治理臂只有训练里真打开才拦。
 
-**第 4 种触发：答案清单 / 草稿**（`/auto-nn-init <target> --answers 文件`）——同一份问卷、同一题序、同一套记录与签字。文件可以是标准 YAML，也可以是 md/txt/一段笔记（你先填成 YAML 再校验）。写清且合法的题不弹卡片；没写的、猜的照问。详见下文「答案清单（--answers）」。
+**第 4 种触发：答案清单 / 草稿**（`/auto-nn-init <target> --answers 文件`）——同一份问卷、同一题序、同一套记录与签字。文件可以是标准 YAML，也可以是 md/txt/一段笔记（你先填成 YAML 再校验）。写清且合法的题不弹卡片；没写的、猜的照问。详见下文「答案清单（--answers）」。migrate + `--answers` + `--source-root` 全覆盖时走 confirm_only（headless 合法）；交互专属动作（资产盘点弹卡、`close --user` 矛盾核销、migration-summary 签字）降级为「读答卷 + 生成 `.auto-nn/migration-diff.json` + warnings」，出仓由 new-project.sh `--answers` 直接完成。
 
 ## 问答忠实 log（init-qa-log）
 
@@ -257,7 +257,7 @@ B) 有偏差，我帮你改：______
 
 2. **migrate pattern 维度**（仅 workflow=migrate 走此分支）：migrate 走完后，看源仓有没有 contract/：
 - 无 contract/（老 migration 路径） → pattern=port_to_contract（拆数据/指标/模型/loss）
-- 有 contract/（老 adapter 路径） → pattern=workspace_wrapper（workspace 翻译 cfg ↔ 外部框架）
+- 有 contract/（fork-and-own 路径） → pattern=full_copy（源代码整套复制进新仓，新仓拥有并演进）
 
 3. **HARD-GATE**：代码看不完 / 两维度没判全 → **不准结束对齐理解环节**，更不进 picker。
 
@@ -518,8 +518,8 @@ python3 <template_root>/scripts/init_o3_abcde.py \
   --force-object-type "<P0 锁定的 object_type>"
 
 # 决策 1-3: 仅 workflow=migrate 才有
-决策 1: 源仓是否在 site-packages?(是 → workspace_wrapper;否 → port_to_contract)
-决策 2: workspace_wrapper 翻译字段是否漏?(回查外部框架 CLI/API)
+决策 1: 源仓有无 contract/?(有 → full_copy;无 → port_to_contract)
+决策 2: full_copy 适配策略(M0)核改是否到位?(keep_all/hybrid/rewrite;对照 migration-diff.json)
 决策 3: port_to_contract 拆 prepare_data/metrics 是否与源一致?(回查源 train.py)
 
 # 阶段 3 治理同步 → 阶段 4 验收

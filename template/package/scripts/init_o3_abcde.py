@@ -60,6 +60,9 @@ def _generate_manual(target_root: Path, workflow: Workflow, object_type: str,
             "走 fork 触发：agent 单轮内撞墙 → 轮末 reflect 核验 → REFLECT_INDEX 写升级建议 → "
             "下轮 agent 把该 cell 从 register 改 fork（cell 级、单向），照 framework 档 fork 兜底格写法落地。\n"
             "- 优先级：HUMAN_GUIDANCE > manual 路径上限（cell 级；人写「这格必须 fork / 不许动」则无条件听人）。\n"
+            # 迁入硬要求注记：原在 overlay/framework.md 表尾，会截断 5×3 表（E 行取不到），挪到 header
+            "> **迁入硬要求**：写 `contract/framework_binding.yaml`（五能力总表：data/train/eval/train_log/checkpoint）。"
+            "评估节须能对账框架原样主分；见 PROTOCOL §3.0.2b。\n"
         )
     header += "\n"
     # WP0.3 撞墙自查清单：从 scenarios/<workflow>.yaml 拼 decision_tree 段，append 到 manual 末尾
@@ -83,7 +86,7 @@ def _generate_manual(target_root: Path, workflow: Workflow, object_type: str,
                     appendix += "\n"
         except yaml.YAMLError as e:
             print(f"=== 警告: scenarios/{workflow.value}.yaml 解析失败 ({e});跳过 decision_tree 段", file=sys.stderr)
-    # PR2: pattern 路由(workflow=migrate 时二级分流 port_to_contract / workspace_wrapper)
+    # PR2: pattern 路由(workflow=migrate 时二级分流 port_to_contract / full_copy)
     if pattern:
         appendix += f"\n\n## pattern 路由(workflow=migrate 时)\n\n- 本次走 **{pattern}**\n"
     # ③-i：基线 reference 探测段（B-轻，机会式非阻塞，无条件追加到所有 workflow/object_type）

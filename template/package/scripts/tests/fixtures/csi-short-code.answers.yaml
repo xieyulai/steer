@@ -66,6 +66,9 @@ answers:
     user: 无额外硬约束。
     lock: H3=none
 
+  适配策略:
+    choice: B
+
   训练里什么能动:
     user: 主损失是重建误差；短码手续不能改。
     lock: T1.HARD=reconstruction-loss; T1.FORBIDDEN=bypass-short-code

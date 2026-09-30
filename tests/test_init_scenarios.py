@@ -85,12 +85,12 @@ def test_detect_migrate_port_to_contract(tmp_path):
     assert r.workflow == Workflow.MIGRATE and r.pattern == "port_to_contract"
 
 
-def test_detect_migrate_workspace_wrapper(tmp_path):
+def test_detect_migrate_full_copy(tmp_path):
     src = tmp_path / "ext"; src.mkdir(); (src / "contract").mkdir()
     repo = tmp_path / "repo"; repo.mkdir()
     from init_workflow import detect, Workflow
     r = detect(repo, src)
-    assert r.workflow == Workflow.MIGRATE and r.pattern == "workspace_wrapper"
+    assert r.workflow == Workflow.MIGRATE and r.pattern == "full_copy"
 
 
 def test_detect_update_same_repo_with_py(tmp_path):

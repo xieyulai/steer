@@ -390,6 +390,16 @@ def _pdh_wpl_triggered(ctx: dict[str, Any]) -> bool:
     return False
 
 
+_PLAIN_HOWTO = (
+    "plain_recipe 怎么落成代码（口径里给了就照做，不自悟改写；没给才走 PDH 自悟）：\n"
+    "①「允许集合内选优」类规则（答卷/init 声明了允许集合）：逐样本只读允许集合内\n"
+    "各选项的实测值，输出实测值最大的选项（per-sample argmax over allowed）；输出\n"
+    "必须始终∈允许集合，出现集合外选项即实现错。\n"
+    "②禁止退化：常量/多数类/从众不是 plain——plain 只见允许集合内的测量，全集\n"
+    "多数类≠plain。记台账前自检：预测⊆允许集合 且 非全同常量，不过就修实现。\n"
+)
+
+
 def _emit_plain_anchor_init(ctx: dict[str, Any]) -> str | None:
     """BAS trigger:仓无 plain_anchor 时返回 plain-anchor-init 段文本。
 
@@ -423,7 +433,8 @@ def _emit_plain_anchor_init(ctx: dict[str, Any]) -> str | None:
             "### plain-anchor-init (FIRST-ROUND, round=1)\n"
             "本仓刚开局，plain 朴素基线尚未建立（主动触发，非阻塞但强烈建议跑）。\n"
             f"{recipe_hint}"
-            "Agent 须做 PDH 自悟:用 PDH 6 原则 "
+            f"{_PLAIN_HOWTO}"
+            "plain_recipe 未给时才 PDH 自悟:用 PDH 6 原则 "
             "(P1 弱于 random / P2 朴素经济 / P3 领域 worst sane baseline / "
             "P4 一眼看可解释 / P5 plain_why 必写 / P6 预算感知，见 base-prompt step 5 段) "
             "推 plain_recipe（根据 contract / profile / 数据形态 + 预算约束），"
@@ -433,7 +444,8 @@ def _emit_plain_anchor_init(ctx: dict[str, Any]) -> str | None:
     return (
         "### plain-anchor-init\n"
         f"{recipe_hint}"
-        "本仓还没建立 plain_anchor。Agent 须先做 PDH 自悟：用 PDH 6 原则 "
+        f"{_PLAIN_HOWTO}"
+        "本仓还没建立 plain_anchor。plain_recipe 未给时才先做 PDH 自悟：用 PDH 6 原则 "
         "(P1 弱于 random / P2 朴素经济 / P3 领域 worst sane baseline / "
         "P4 一眼看可解释 / P5 plain_why 必写 / P6 预算感知，见 base-prompt step 5 段) "
         "推 plain_recipe（根据 contract / profile / 数据形态 + 预算约束），"
@@ -493,6 +505,47 @@ def _emit_reference_start(ctx: dict[str, Any]) -> str | None:
         "（先反思找公开方法；找不到则从已有成绩按当前最好与朴素下界的中点挑一行）。\n"
         "文献尺须本机原仓校准过线才可贴 --source literature；未过线禁止贴文献尺，"
         "本轮写清先校准或先修配方。否则中点代用（--source ledger_midpoint）可自动贴，不等人确认。\n"
+        "禁止把当前最好或已是朴素下界的那一行贴成公开对照。贴上后衍生轮标签必须是 none。\n"
+    )
+
+
+def _emit_reference_anchor_first_round(ctx: dict[str, Any]) -> str | None:
+    """答卷指定 reference 起步尺（intent）→ round==1 主动注入立尺段。
+
+    照 plain FIRST-ROUND（_pdh_bas_first_round + _emit_plain_anchor_init）同型：
+    round==1 ∧ intent 要求 reference ∧ 仓无 reference 信号（锚值/标签任一已有则不发）
+    → 发 FIRST-ROUND 段（非阻塞但强烈建议首轮处理）。硬门原文与被动兜底段一致。
+    intent 不要求 reference（含缺省无 intent）→ 不发，维持原有逻辑：
+    plain 首轮照推、reference 只走满 10 轮被动兜底（_emit_reference_start）。
+    """
+    if ctx.get("run") != 1:
+        return None
+    intent = _load_baseline_start_intent(ctx)
+    if not _intent_wants_reference_run(intent):
+        return None
+    root = ctx.get("repo_root")
+    if not isinstance(root, Path):
+        return None
+    if _has_reference_run_signal(ctx):
+        return None
+    recipe_hint = ""
+    if intent:
+        bits = []
+        if intent.get("reference_method"):
+            bits.append(f"reference_method={intent['reference_method']}")
+        if intent.get("reference_conditions"):
+            bits.append(f"reference_conditions={intent['reference_conditions']}")
+        if intent.get("scenario_id"):
+            bits.append(f"scenario_id={intent['scenario_id']}")
+        if bits:
+            recipe_hint = "按 init 口径：" + "; ".join(str(b) for b in bits) + "。\n"
+    return (
+        "### reference-anchor-init (FIRST-ROUND, round=1)\n"
+        "答卷指定 reference 公开对照尺，本仓尚未立（主动触发，非阻塞但强烈建议首轮处理）。\n"
+        f"{recipe_hint}"
+        "Agent 须走 /auto-nn-reference 流程立尺。硬门：文献尺须本机原仓校准过线"
+        "（check-source-cal）才可贴 --source literature；未过线禁止贴文献尺。\n"
+        "过不了线用台账中点（--source ledger_midpoint）可自动贴，不等人确认。\n"
         "禁止把当前最好或已是朴素下界的那一行贴成公开对照。贴上后衍生轮标签必须是 none。\n"
     )
 
@@ -1374,6 +1427,9 @@ def format_run_context_md(ctx: dict[str, Any]) -> str:
     ref_start = _emit_reference_start(ctx)
     if ref_start is not None:
         lines.extend(["", ref_start])
+    ref_first = _emit_reference_anchor_first_round(ctx)
+    if ref_first is not None:
+        lines.extend(["", ref_first])
     for w in ctx.get("warnings") or []:
         lines.extend(["", str(w)])
     # 现有末尾 extend 后追加：

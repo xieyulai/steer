@@ -14,7 +14,12 @@ from contract import prepare_data as data_entry
 from contract import test as terminal_test
 from contract.metrics import AUXILIARY_KEYS, METRIC_KEYS
 from contract.runtime import REPRO_ENV_KEYS
-from lib.metric_units import _safe_metric as _metric_units_safe_metric  # Layer 1 复用 (v1.24.0)
+# Layer 1 复用 (v1.24.0)：lib/ 在 scripts/lib/ 下；Poetry 脚本默认 PYTHONPATH=. 时
+# 找不到，做成 try/import 兜底（业务仓 contract 一般不用 _safe_metric；用时再报 ImportError）
+try:
+    from lib.metric_units import _safe_metric as _metric_units_safe_metric  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    _metric_units_safe_metric = None  # type: ignore[assignment]
 from contract.scenario_capacity import (
     check_scenario_capacity as _check_scenario_capacity,
     list_capacity as _list_capacity,
@@ -56,6 +61,7 @@ class Contract(ExperimentBase):
             ws,
             shared_context=shared_context,
             adapter_runner=adapter_runner,
+            contract=self,  # ADR-11：contract 显式传参，不走 shared_context
         )
 
     # ── v1.24.0 Layer 2 — None-safe + 缺值兜底 ─────────────────────
@@ -66,6 +72,10 @@ class Contract(ExperimentBase):
         业务仓可写 ``return self._safe_metric(metrics.get("val_accuracy"))``
         替代手动 ``or 0.0`` / ``float(metrics[k])`` None 崩溃补丁。
         """
+        if _metric_units_safe_metric is None:
+            raise ImportError(
+                "lib.metric_units 未挂到 PYTHONPATH；请加 PYTHONPATH=.:scripts 后运行"
+            )
         return _metric_units_safe_metric
 
     def default_metrics(self, shared_context: dict | None) -> dict[str, float] | None:

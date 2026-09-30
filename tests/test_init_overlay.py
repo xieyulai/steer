@@ -38,7 +38,7 @@ def test_manual_b_row_differs_per_object_type(tmp_path):
 def test_overlay_drift_lock_extract_cell_still_works(tmp_path):
     """overlay 接通后 extract_manual_cell 仍能取 A–E routine cell（drift-lock）。"""
     write_init_outputs(tmp_path, Workflow.MIGRATE, "framework", _template_dir())
-    for letter in ("A", "B", "C", "D"):
+    for letter in ("A", "B", "C", "D", "E"):
         cell = extract_manual_cell(_manual_path(tmp_path), letter, "routine")
         assert cell.strip() != "", f"{letter}-routine cell 为空（drift-lock 破坏）"
 

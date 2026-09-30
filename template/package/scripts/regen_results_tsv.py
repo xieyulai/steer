@@ -143,16 +143,27 @@ def _default_tsv_columns_from_dicts(
     ]
 
 
-def _load_contract(repo_root: Path) -> Any:
+def _load_contract(repo_root: Path) -> Any | None:
+    """加载 contract；未就绪（import 失败且无法静态解析指标键）返回 None。
+
+    Step 0.4：占位 contract（全注释 metrics.py）下曾直接 re-raise → rc=1 连坐
+    governance-sync / new-project（update 源带存量 _runs/results.tsv 时炸立项）；
+    改为 None 哨兵，调用方降级为「跳过 + 可见警告」，TSV 原样保留。
+    """
     sys.path.insert(0, str(repo_root.resolve()))
     try:
         from contract import create_contract  # noqa: WPS433
 
-        return create_contract({})
+        contract = create_contract({})
     except Exception as exc:
         parsed = _parse_metric_dicts_from_source(repo_root)
         if parsed is None:
-            raise exc from None
+            print(
+                f"[regen_results_tsv] contract 未就绪（import 失败：{exc}；"
+                "metrics.py 无可静态解析的 METRIC_KEYS），跳过表头操作",
+                file=sys.stderr,
+            )
+            return None
         metric_keys, auxiliary_keys, ledger_context_keys = parsed
 
         class _ContractStub:
@@ -167,7 +178,15 @@ def _load_contract(repo_root: Path) -> Any:
                     self.metric_keys, self.auxiliary_keys, self.ledger_context_keys,
                 )
 
-        return _ContractStub()
+        contract = _ContractStub()
+    if not getattr(contract, "metric_keys", None):
+        # 模板演示 contract（METRIC_KEYS={}，import 可成功、metric_key=None）也视为未就绪
+        print(
+            "[regen_results_tsv] contract 未就绪（METRIC_KEYS 为空——模板演示/占位），跳过表头操作",
+            file=sys.stderr,
+        )
+        return None
+    return contract
 
 
 def _config_from_exp_dir(exp_dir: str) -> dict[str, Any]:
@@ -320,10 +339,14 @@ def regen_tsv(
     *,
     backup: bool = True,
     drop_experiments: frozenset[str] = frozenset(),
-) -> Path:
+) -> Path | None:
+    """重生成 TSV；contract 未就绪时跳过（TSV 原样保留）并返回 None。"""
     repo_root = repo_root.resolve()
     tsv_path = repo_root / tsv_rel
     contract = _load_contract(repo_root)
+    if contract is None:
+        print(f"[regen_results_tsv] 跳过 regen（TSV 原样保留）：{tsv_path}", file=sys.stderr)
+        return None
     header = contract._default_tsv_columns()
     metric_keys = _metric_keys_for_contract(contract)
 
@@ -379,6 +402,8 @@ def main() -> int:
     repo_root = args.repo_root.resolve()
     if args.header_only:
         contract = _load_contract(repo_root)
+        if contract is None:
+            return 0  # stdout 为空 → new-project.sh 走占位表头 fallback
         print("\t".join(contract._default_tsv_columns()))
         return 0
 
@@ -386,6 +411,8 @@ def main() -> int:
     regen_tsv(repo_root, args.tsv, backup=not args.no_backup, drop_experiments=drop_set)
 
     contract = _load_contract(repo_root)
+    if contract is None:
+        return 0  # regen 已跳过，无表可校验
     tsv_path = repo_root / args.tsv
     header = tsv_path.read_text(encoding="utf-8").splitlines()[0].split("\t")
     required = set(contract.metric_keys) | set(contract.auxiliary_keys)

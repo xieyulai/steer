@@ -1,6 +1,8 @@
 """台账终评实现（官方分数唯一来源）。禁止 ws.evaluate。"""
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -27,12 +29,24 @@ def get_test_loader(
     )
 
 
-def run(learner, ws, *, shared_context: dict) -> dict[str, float]:
+def run(
+    learner, ws, *, shared_context: dict,
+    adapter_runner: Callable[[], dict[str, float]] | None = None,
+    contract=None,
+) -> dict[str, float]:
+    """contract 由门面显式传入（ADR-11：禁经 shared_context 袋内传递）。"""
+    # ADAPTER 模式: learner=None + adapter_runner 注册 → 转发业务仓出分(与门面对齐)
+    if learner is None:
+        if adapter_runner is not None:
+            return adapter_runner()
+        raise ValueError(
+            "contract.test.run: learner=None 且 adapter_runner=None,"
+            " 请显式指定 ADAPTER 路径或确保 supervised 路径传 learner"
+        )
     cfg = shared_context.get("cfg", {})
     batch_size = int(cfg["BATCH_SIZE"])
     num_workers = int(cfg["NUM_WORKERS"])
     objective = shared_context.get("objective")
-    contract = shared_context.get("contract")
     if contract is not None:
         data_dir = contract.data_dir
     else:

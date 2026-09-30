@@ -72,18 +72,64 @@ def test_build_pattern_is_register_learner():
     assert sc["recognition"].get("has_source_root") is False
 
 
-def test_migrate_workspace_wrapper_branch():
-    """migrate 走 patterns: 二级分流;workspace_wrapper 路径严守「无状态 + 保护 _backend_」。"""
+def test_migrate_patterns_full_copy_and_port():
+    """migrate 二级分流单一真源:full_copy 复制名单 + port 参考目录 + 源侧禁拷。"""
     sc = _load_scenario("migrate")
-    # recognition: source_root 与 repo 不同目录
     assert sc["recognition"].get("has_source_root") is True
     assert sc["recognition"].get("same_dir_as_repo") is False
-    # patterns.workspace_wrapper.when 提 contract/ 触发条件
-    assert "contract/" in sc["patterns"]["workspace_wrapper"]["when"]
-    # wrapper_contract.invariant: workspace_wrapper 必须无状态
-    assert "无状态" in sc["wrapper_contract"]["invariant"]
-    # protected_paths 锁 _backend_/ 不可改(wrapper 路径不碰外部代码)
-    assert "_backend_" in str(sc.get("protected_paths", []))
+    fc = sc["patterns"]["full_copy"]
+    assert "contract/" in fc["when"]
+    assert set(fc["copy_targets"]) == {"contract_glob", "workspace_dir", "root_files"}
+    assert fc["copy_targets"]["root_files"] == ["train.py", "experiment.py"]
+    assert sc["patterns"]["port_to_contract"]["legacy_dir"] == "references/legacy/"
+    forbid = sc["forbid"]
+    for d in ("data/", "_runs/", "saved/", "references/", ".git/", ".venv/"):
+        assert d in forbid, d
+    assert "wrapper_contract" not in sc and "protected_paths" not in sc
+
+
+@pytest.fixture(scope="module")
+def patterns_mod():
+    pkg_root = str(ROOT / "template" / "package" / "scripts")
+    if pkg_root not in sys.path:
+        sys.path.insert(0, pkg_root)
+    import new_project_patterns as mod
+
+    return mod
+
+
+def test_patterns_resolve_by_contract_dir(patterns_mod):
+    data = patterns_mod.load_patterns(SCEN_DIR)
+    assert patterns_mod.resolve_pattern(None) == "port_to_contract"  # 无源保守缺省
+    import pathlib
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        td = pathlib.Path(td)
+        (td / "full" / "contract").mkdir(parents=True)
+        td.joinpath("port").mkdir()
+        assert patterns_mod.resolve_pattern(td / "full") == "full_copy"
+        assert patterns_mod.resolve_pattern(td / "port") == "port_to_contract"
+        emitted = patterns_mod.emit(data, td / "full")
+        assert emitted["pattern"] == "full_copy"
+        assert emitted["copy_targets"]["contract_glob"] == "contract/*.py"
+        emitted2 = patterns_mod.emit(data, td / "port")
+        assert emitted2["pattern"] == "port_to_contract"
+        assert emitted2["legacy_dir"] == "references/legacy/"
+        assert "data/" in emitted["forbid"]
+
+
+def test_patterns_cli_emit(tmp_path):
+    import subprocess
+
+    cli = ROOT / "template" / "package" / "scripts" / "new_project_patterns.py"
+    src = tmp_path / "src"
+    (src / "contract").mkdir(parents=True)
+    r = subprocess.run(
+        ["python3", str(cli), "--source-root", str(src), "--pattern"],
+        capture_output=True, text=True, check=False,
+    )
+    assert r.returncode == 0 and r.stdout.strip() == "full_copy"
 
 
 def test_update_preserves_artifacts():

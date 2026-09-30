@@ -42,11 +42,11 @@ def test_manual_header_reflects_workflow_and_object_type(tmp_path, workflow, obj
     assert f"workflow={workflow.value}" in txt
 
 
-def test_migrate_pattern_workspace_wrapper(tmp_path):
+def test_migrate_pattern_full_copy(tmp_path):
     write_init_outputs(tmp_path, Workflow.MIGRATE, "framework", _template_dir(),
-                       pattern="workspace_wrapper")
+                       pattern="full_copy")
     txt = (tmp_path / "references" / "manual" / "abcde-manual.md").read_text(encoding="utf-8")
-    assert "workspace_wrapper" in txt
+    assert "full_copy" in txt
 
 
 def test_migrate_pattern_port_to_contract(tmp_path):

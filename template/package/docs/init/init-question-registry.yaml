@@ -169,6 +169,30 @@ questions:
     depends_on: [D3-workspace-data]
     answers: {skip_allowed: false}
 
+  - slug: M0-adapter-strategy
+    key: 适配策略
+    aliases: [adapter_strategy, adapter-strategy]
+    theme: 旧资产清理
+    entries: [A]
+    step: {A: 0}
+    depends_on: [P0-project-brief]
+    ask: 源代码进新仓后改多少（仅 migrate full_copy 计步；port_to_contract 不问）？
+    answers: {skip_allowed: false}
+    kind: choice
+    options:
+      A:
+        label: keep_all 整套照抄（源口径即新仓口径）
+        value: keep_all
+        lock: "M0=keep_all"
+      B:
+        label: hybrid 保留 metrics/runtime，重写 prepare_data/test（推荐）
+        value: hybrid
+        lock: "M0=hybrid"
+      C:
+        label: rewrite 源仅作参考，按 profile 重写全套
+        value: rewrite
+        lock: "M0=rewrite"
+
   - slug: H1-legacy-artifacts
     key: 旧成绩与产物
     aliases: [legacy_artifacts, 旧台账]
