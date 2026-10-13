@@ -94,8 +94,8 @@ python3 scripts/manage_goal.py show --all # 全场景矩阵 + policy
 | `mode` | 类型 | 人话 | 起手档 | 实验目标 | goal 硬停 | 撞墙处理 |
 |---|---|---|---|---|---|---|
 | `careful` | 显式 | 啥都不动，照手册做 | A 标量 | optimize | ✅ | reflect 建议 |
-| `optimize` ⭐ | 显式 | 参考下同行，标准干活 | A 标量 | optimize | ✅ | reflect 建议 |
-| `innovate` | 显式 | 撞墙，翻同行代码 | B 结构 | innovate | ✅ | reflect 建议 |
+| `optimize` ⭐ | 显式 | 参考下同行，标准干活 | B 结构 | optimize | ✅ | reflect 建议 |
+| `innovate` | 显式 | 撞墙，翻同行代码 | C 优化目标 | innovate | ✅ | reflect 建议 |
 | `aggressive` | 显式 | 论文+文档+实现+生态全查 | D 数据 | innovate | ✅ | reflect 建议 |
 | `explore` | 显式 | 啥都试，不被指标卡 | B 结构 | explore | ❌ | reflect 建议 |
 | **`auto`** | **auto** | **放手** | 跟随档 | 跟随档 | 跟随档 | **系统写 yaml 升档** |

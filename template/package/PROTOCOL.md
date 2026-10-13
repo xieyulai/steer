@@ -433,8 +433,8 @@ poetry run python train.py --config _repro_config.json
 | `exploration_mode` | 类型 | 人话 | 起手档 | 实验目标 | goal 硬停 | 撞墙处理 |
 |---|---|---|---|---|---|---|
 | `careful` | 显式 | 啥都不动，照手册做 | A 标量 | optimize | ✅ 达标即停 | reflect 建议 |
-| `optimize` ⭐ | 显式 | 参考下同行，标准干活 | A 标量 | optimize | ✅ 达标即停 | reflect 建议 |
-| `innovate` | 显式 | 撞墙，翻同行代码 | B 结构 | innovate | ✅ 达标即停 | reflect 建议 |
+| `optimize` ⭐ | 显式 | 参考下同行，标准干活 | B 结构 | optimize | ✅ 达标即停 | reflect 建议 |
+| `innovate` | 显式 | 撞墙，翻同行代码 | C 优化目标 | innovate | ✅ 达标即停 | reflect 建议 |
 | `aggressive` | 显式 | 论文+文档+实现+生态全查 | D 数据 | innovate | ✅ 达标即停 | reflect 建议 |
 | `explore` | 显式 | 啥都试，不被指标卡 | B 结构 | explore | ❌ 不停 | reflect 建议 |
 | **`auto`** | **auto** | **放手** | 跟随档 | 跟随档 | 跟随档 | **系统写 yaml 升档** |
@@ -640,7 +640,7 @@ agent:
 - `context.recent_rows`（旧 `agent.run_context_recent_rows`）— Run Context 近窗 TSV 行数（默认 5，范围 1–10；事实陈述，非 stage 标签）
 - **`context.language`**（旧 `agent.language`）— Agent 回答语种。注入到 RUN CONTEXT 顶部作为行为提示；不影响模板脚本 stderr / `HUMAN_GUIDANCE.md` / 台账列名。常用值 `"中文"` / `"English"` / `"日本語"`；`auto` 或空 = 不提示（默认）。设值后下一次 auto-run 轮即生效，无需重启
 - `goal.*`（旧 `agent.goal_*`）— 设/改/查/清走技能 `/auto-nn-goal`，勿手改 yaml
-- **Tier 起手档**（**非**顶层 `exploration_mode` 旋钮）：由 `resolve_exploration().tier_start` 读时从当前 `exploration_mode` 档 bundle 派生（见 §5.1「起手档」列；如 `careful`/`optimize`→A、`innovate`→B、`aggressive`→D）。设/改实验模式走 **`/auto-nn-goal mode`** → 写顶层 `exploration_mode`。**勿**写已退役的 `exploration.mode` / `agent.experiment_mode` / `exploration.style`。撞墙升 Tier 由 EXPERIENCE `## Tier 状态` + reflect 驱动；`aggressive`/`innovate` 档还联动 reflect router 外源深度（见 §7.6）
+- **Tier 起手档**（**非**顶层 `exploration_mode` 旋钮）：由 `resolve_exploration().tier_start` 读时从当前 `exploration_mode` 档 bundle 派生（见 §5.1「起手档」列；如 `careful`→A、`optimize`→B、`innovate`→C、`explore`→B、`aggressive`→D；`auto` 跟随 `effective_mode`）。设/改实验模式走 **`/auto-nn-goal mode`** → 写顶层 `exploration_mode`。**勿**写已退役的 `exploration.mode` / `agent.experiment_mode` / `exploration.style`。撞墙升 Tier 由 EXPERIENCE `## Tier 状态` + reflect 驱动；`aggressive`/`innovate` 档还联动 reflect router 外源深度（见 §7.6）
 
 其他 `agent.*` 字段（`reflect_*` / `analyse_*` / `experience_auto_compress` 等）属模板内部参数，常规迭代不读不改。
 

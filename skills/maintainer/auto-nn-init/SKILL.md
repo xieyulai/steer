@@ -323,8 +323,8 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 - 另外两个一般不用：careful = 照手册原样跑、啥都不动；explore = 纯摸底不追指标（须迁后验收完成再开）。
 - 你怎么选：
   A) careful（啥都不动，照手册做；起手 A 标量；reflect 间隔 2 轮避免扰动）
-  B) optimize ⭐（标准干活，追指标；起手 A 标量；reflect 间隔 1 轮）
-  C) innovate（撞墙翻同行代码；起手 B 结构；reflect 间隔 1 轮）
+  B) optimize ⭐（标准干活，追指标；起手 B 结构；reflect 间隔 1 轮）
+  C) innovate（撞墙翻同行代码；起手 C 优化目标；reflect 间隔 1 轮）
   D) aggressive（论文+文档+实现+生态全查；起手 D 数据；reflect 间隔 1 轮）
   E) explore（啥都试，不被指标卡；不 hard-stop on goal；reflect 间隔 1 轮）
   F) auto（放手让系统撞墙自动升档；起步 optimize，5 轮撞墙升 innovate，再 5 轮升 aggressive；aggressive 撞墙停止）
