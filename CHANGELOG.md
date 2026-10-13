@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.1] - 2026-10-14
+
+### Fixed
+
+- fix: 手册起手档与代码对齐
+
 ## [3.4.0] - 2026-09-26
 
 ### Added
