@@ -26,6 +26,7 @@ from pathlib import Path
 # README 块标记（与 d2_data_split_gate / scenario_policy_gate 对齐）
 _BLOCKS: dict[str, tuple[str, str]] = {
     "D2_DATA_SPLIT": ("<!-- D2_DATA_SPLIT -->", "<!-- /D2_DATA_SPLIT -->"),
+    "D2B_DATA_AXES": ("<!-- D2B_DATA_AXES -->", "<!-- /D2B_DATA_AXES -->"),
     "SCENARIO_POLICY": ("<!-- SCENARIO_POLICY -->", "<!-- /SCENARIO_POLICY -->"),
     "AGENT_BOUNDARY": ("<!-- AGENT_BOUNDARY -->", "<!-- /AGENT_BOUNDARY -->"),
 }
@@ -71,6 +72,26 @@ def _load_resolved(resolved_path: Path) -> tuple[dict[str, str], dict[str, dict]
             locks[str(slug)] = str(fields["lock"])
         machine[str(slug)] = {k: v for k, v in fields.items() if k != "lock"}
     return locks, machine
+
+
+def _bracket_inner(raw: str) -> str:
+    """lock 里 ``[…]`` 列表值 → 逗号分隔内文（去最外层方括号）。"""
+    s = raw.strip()
+    if s.startswith("[") and s.endswith("]"):
+        return s[1:-1].strip()
+    return s
+
+
+def _d2b_fields(lock: str) -> dict[str, str]:
+    """D2b lock → README D2B 块字段（无 lock 键时不渲染）。"""
+    out: dict[str, str] = {}
+    axes = _kv(lock, "D2b.AXES")
+    if axes:
+        out["AXES"] = _bracket_inner(axes)
+    names = _kv(lock, "D2b.NAMES")
+    if names:
+        out["NAMES"] = _bracket_inner(names)
+    return out
 
 
 def _d2_fields(lock: str) -> dict[str, str]:
@@ -173,6 +194,18 @@ def render_readme(repo_root: Path, locks: dict[str, str]) -> list[str]:
     notes: list[str] = []
     s, e = _BLOCKS["D2_DATA_SPLIT"]
     text = _render_block(text, s, e, _d2_fields(locks.get("D2-data-split", "")))
+    d2b_lock = locks.get("D2b-data-axes", "")
+    if d2b_lock:
+        d2b = _d2b_fields(d2b_lock)
+        if d2b:
+            s, e = _BLOCKS["D2B_DATA_AXES"]
+            if text.find(s) >= 0:
+                text = _render_block(text, s, e, d2b)
+            else:
+                body = "\n".join(f"{k}: {v}" for k, v in d2b.items())
+                if text and not text.endswith("\n"):
+                    text += "\n"
+                text += "\n" + s + "\n" + body + "\n" + e + "\n"
     s, e = _BLOCKS["SCENARIO_POLICY"]
     text = _render_block(text, s, e, _scenario_fields(locks))
     s, e = _BLOCKS["AGENT_BOUNDARY"]

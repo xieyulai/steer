@@ -224,3 +224,15 @@ def test_write_intent_no_o3(tmp_path):
     repo = _make_repo(tmp_path)
     notes = write_intent(repo, {k: v for k, v in LOCKS.items() if not k.startswith("O3")})
     assert (repo / ".auto-nn" / "baseline-intent-skipped").is_file()
+
+
+def test_d2b_lock_renders_readme_block(tmp_path):
+    readme = tmp_path / "README.md"
+    readme.write_text("# 项目\n", encoding="utf-8")
+    locks = {"D2b-data-axes": "D2b.AXES=[2,32,4,8]; D2b.NAMES=[iq,tx,rx,rb]"}
+    render_readme(tmp_path, locks)
+    text = readme.read_text(encoding="utf-8")
+    assert "<!-- D2B_DATA_AXES -->" in text
+    assert "AXES: 2,32,4,8" in text
+    assert "NAMES: iq,tx,rx,rb" in text
+    assert "<!-- /D2B_DATA_AXES -->" in text
