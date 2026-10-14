@@ -53,48 +53,49 @@ agent 对用户只说**人话主题 + 进度**；内部按右列编码逐项推�
 
 **F1-contract** = 阶段 1 结束时锁定的 **口径合同表**（≠ 迁移完成）；仅在**入口 A migrate 27** / **入口 B build 24** / **二次 init update 15** 全部确认后的**单独一轮**汇总。
 
-### 入口 A — 27 项速查
+### 入口 A — 28 项速查
 
 | # | 编号 | 人话 |
 |---|------|------|
-| 准 | **M0-adapter-strategy**（仅 full_copy；准备步不计 27） | 适配策略：keep_all 照抄 / hybrid 保留 metrics·runtime 重写 prepare_data·test（推荐）/ rewrite 重写全套 |
+| 准 | **M0-adapter-strategy**（仅 full_copy；准备步不计 28） | 适配策略：keep_all 照抄 / hybrid 保留 metrics·runtime 重写 prepare_data·test（推荐）/ rewrite 重写全套 |
 | 1 | **D1-scenario-inventory** | **场景清单**（数据与指标 / 方法族 / 默认配置；P0 后第一项） |
 | 2 | **D2-data-split** | 数据根 + 划分表 + 每场景 OFFICIAL_TEST |
-| 3 | **I1-train-consumes** | **训练许用材料**：全部 / 只训练份（哪些只评）/ 不读数据文件 |
-| 4 | **I2-official-path** | **官方打分通道**：整网前向 / 受限路径（手续函数）/ 固定评测态 |
-| 5 | **I3-other-info-rules** | **其他信息规矩**：均无 / 逐条（机器只管训练 batch 键白名单） |
-| 6 | **D3-workspace-data** | 训内数据处理落 workspace |
-| 7 | **D4-repro-data** | **复现数据**：数据根版本、`REPRO_ENV_KEYS` 数据项 |
-| 8 | **H1-legacy-artifacts** | 旧台账 / exp / 命名线索（**可对照 D1 场景 ID**） |
-| 9 | **H2-experience** | EXPERIENCE.md 取舍 |
-| 10 | **H3-agent-boundary** | 旧文档硬约束 → README |
-| 11 | **T1-loss-layers** | loss / 约束 / 技巧分层 |
-| 12 | **T2-callchain** | 外层循环、调用链 ≤6 行 |
-| 13 | **E1-metrics** | 主/辅指标键 |
-| 14 | **G1-experiment-mode** | **实验模式**（追指标 / 新方法+指标 / 摸底） |
-| 15 | **G2-goal-value** | **主指标目标值**（达标即停；explore 可选护栏） |
-| 16 | **E2-metric-tier** | 指标列分级 |
-| 17 | **E3-official-test** | 训末 `contract.test`（须与 **I2** 通道一致） |
-| 18 | **E4-train-eval** | E4_PATH + E4_训内节奏 + 返回键 |
-| 19 | **E5-tsv-columns** | TSV 四区与列 |
-| 20 | **E6-scenario** | **探索方案与排期**（须在 **G1/G2** 之后；清单已在 D1） |
-| 21 | **E7-run-context** | 台账运行参数键 |
-| 22 | **E8-checkpoint** | checkpoint 策略 |
-| 23 | **E9-keep** | KEEP / 历史池 |
-| 24 | **O1-time-budget** | 训练墙钟 |
-| 25 | **O2-gpus-parallel** | GPU 白名单 + 并行 |
-| 26 | **O3-baseline-anchors** | 该场景起步尺子（plain+reference；测条件；找不到请用户给；**须在 G + E6 之后**） |
-| 27 | **O4-repro-determinism** | **复现随机性**：基线 `NN_SEED`、cuDNN、快照约定 |
+| 3 | **D2b-data-axes** | **数据维度含义**：各维长度和轴名；推荐来自代码或答题卡，人确认。禁止把某一课题的维度写成默认 |
+| 4 | **I1-train-consumes** | **训练许用材料**：全部 / 只训练份（哪些只评）/ 不读数据文件 |
+| 5 | **I2-official-path** | **官方打分通道**：整网前向 / 受限路径（手续函数）/ 固定评测态 |
+| 6 | **I3-other-info-rules** | **其他信息规矩**：均无 / 逐条（机器只管训练 batch 键白名单） |
+| 7 | **D3-workspace-data** | 训内数据处理落 workspace |
+| 8 | **D4-repro-data** | **复现数据**：数据根版本、`REPRO_ENV_KEYS` 数据项 |
+| 9 | **H1-legacy-artifacts** | 旧台账 / exp / 命名线索（**可对照 D1 场景 ID**） |
+| 10 | **H2-experience** | EXPERIENCE.md 取舍 |
+| 11 | **H3-agent-boundary** | 旧文档硬约束 → README |
+| 12 | **T1-loss-layers** | loss / 约束 / 技巧分层 |
+| 13 | **T2-callchain** | 外层循环、调用链 ≤6 行 |
+| 14 | **E1-metrics** | 主/辅指标键 |
+| 15 | **G1-experiment-mode** | **实验模式**（追指标 / 新方法+指标 / 摸底） |
+| 16 | **G2-goal-value** | **主指标目标值**（达标即停；explore 可选护栏） |
+| 17 | **E2-metric-tier** | 指标列分级 |
+| 18 | **E3-official-test** | 训末 `contract.test`（须与 **I2** 通道一致） |
+| 19 | **E4-train-eval** | E4_PATH + E4_训内节奏 + 返回键 |
+| 20 | **E5-tsv-columns** | TSV 四区与列 |
+| 21 | **E6-scenario** | **探索方案与排期**（须在 **G1/G2** 之后；清单已在 D1） |
+| 22 | **E7-run-context** | 台账运行参数键 |
+| 23 | **E8-checkpoint** | checkpoint 策略 |
+| 24 | **E9-keep** | KEEP / 历史池 |
+| 25 | **O1-time-budget** | 训练墙钟 |
+| 26 | **O2-gpus-parallel** | GPU 白名单 + 并行 |
+| 27 | **O3-baseline-anchors** | 该场景起步尺子（plain+reference；测条件；找不到请用户给；**须在 G + E6 之后**） |
+| 28 | **O4-repro-determinism** | **复现随机性**：基线 `NN_SEED`、cuDNN、快照约定 |
 
-→ 随后 **F1-contract** 汇总签字（不计入 27）。
+→ 随后 **F1-contract** 汇总签字（不计入 28）。
 
-**P0-project-brief** 在 **#1 之前**单独一轮，**不计入** 27/24/15 项。见 [P0-project-brief](#p0-project-brief项目摘要确认不计入-272415-项)。
+**P0-project-brief** 在 **#1 之前**单独一轮，**不计入** 28/25/16 项。见 [P0-project-brief](#p0-project-brief项目摘要确认不计入-272415-项)。
 
-> **入口 A 为何 D 在 H 前？** 先钉「测谁、数据契约」，再清理旧台账/EXPERIENCE；H1 可对齐 D1 场景 ID。**信息权限 I 为何在 D2 后、D3 前？** D2 定了有哪些数据、怎么划分，I1 才能指着它说「哪些只评」；D3 训内数据处理须先知道训练能碰什么。**G1/G2 为何在 E6 前？** 探索方案与**实验目标**（模式 + 达标线）紧密相关——须先定「追数 / 方法+数 / 摸底」，再定「每轮允许改什么、场景怎么排期」；E6 **禁止**裸写内部轴名，须引用 G1 人话结论。**O3** 在 G + E6 之后，定该场景起步 **plain/reference 尺子**（起手改哪一类已由 G1 `exploration_mode`→`tier_start` 隐含；见 O3 节）。
+> **入口 A 为何 D 在 H 前？** 先钉「测谁、数据契约」，再清理旧台账/EXPERIENCE；H1 可对齐 D1 场景 ID。**信息权限 I 为何在 D2b 之后、D3 前？** D2 钉划分，D2b 钉每一维是什么，I1 再问谁能碰这些材料。**G1/G2 为何在 E6 前？** 探索方案与**实验目标**（模式 + 达标线）紧密相关——须先定「追数 / 方法+数 / 摸底」，再定「每轮允许改什么、场景怎么排期」；E6 **禁止**裸写内部轴名，须引用 G1 人话结论。**O3** 在 G + E6 之后，定该场景起步 **plain/reference 尺子**（起手改哪一类已由 G1 `exploration_mode`→`tier_start` 隐含；见 O3 节）。
 
-### 入口 B — 24 项速查
+### 入口 B — 25 项速查
 
-无 H 段；与上表 **#1–7、#11–27** 相同（重编为 1–24）：`P0 → D1→D2 → I1→I2→I3 → D3→D4 → T1→T2 → E1 → G1→G2 → E2…→E9 → O1→O4 → F1-contract`。机器可读题序：`python3 scripts/init_answers.py steps --workflow build|migrate`（题库 `docs/init/init-question-registry.yaml`，单测对照本表）。
+无 H 段；与上表 **#1–8、#12–28** 相同（重编为 1–25）：`P0 → D1→D2→D2b → I1→I2→I3 → D3→D4 → T1→T2 → E1 → G1→G2 → E2…→E9 → O1→O4 → F1-contract`。机器可读题序：`python3 scripts/init_answers.py steps --workflow build|migrate`（题库 `docs/init/init-question-registry.yaml`，单测对照本表）。
 
 ### E4 子字段（在 E4-train-eval 一轮内）
 
@@ -712,6 +713,15 @@ SCENARIO_CANDIDATES: ngl01_sip3_mix
 ```
 
 **D2-data-split 与 E4-train-eval 分工**：**先 D2-data-split** 钉 `EVAL_USES` / `TEST_USES`；**再 E4-train-eval** 钉训内是否调 `evaluate`、频率。**supervised**：训内 eval **算分方式与 test 相同**（共用指标实现），仅 loader 不同 — 见阶段 E 默认 `E4_PATH=②-same-metrics`。
+
+#### D2b-data-axes — 数据维度含义（必遵；D2 之后、I1 之前）
+
+【现状】从数据合同、答题卡或读取代码里抄出各维长度和名字。没有长度的记录，长度写空列表，名字写段名。
+【为什么问】只写总长度时，模型会按别的项目的顺序切开。
+【模板建议】推荐值来自该项目自己的合同或答题卡，不把别的课题的数字写成推荐。
+【确认选项】① 采纳推荐的长度和轴名 / ② 人改长度或轴名（两项必须等长；记录型长度可为空）。
+
+【选后锁定】`D2b.AXES=[…]` 与 `D2b.NAMES=[…]`。阶段 2 写入 README `<!-- D2B_DATA_AXES -->`。域题面字段仍由该域的答题卡写入 `task_config.yaml`，本问不发明第二套键名。
 
 ### 阶段 I：信息权限（"谁能看什么"）— **D2 之后、D3 之前**
 
