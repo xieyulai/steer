@@ -72,7 +72,7 @@ def _run(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
 
 def test_registry_shape(registry):
     slugs = [q.slug for q in registry.questions]
-    assert len(slugs) == 30 and len(set(slugs)) == 30  # 27 计步 + M0 准备步 + P0 + F1
+    assert len(slugs) == 31 and len(set(slugs)) == 31  # 28 计步 + M0 准备步 + P0 + F1
     assert {"I1-train-consumes", "I2-official-path", "I3-other-info-rules"} <= set(slugs)
     skippable = {q.slug for q in registry.questions if q.skip_allowed}
     assert skippable == {
@@ -83,9 +83,9 @@ def test_registry_shape(registry):
 
 def test_steps_27_and_24_with_I_after_D2(registry):
     a, b = IA.steps_for(registry, "migrate"), IA.steps_for(registry, "build")
-    assert len(a) == 27 and len(b) == 24
-    assert a[:6] == ["D1-scenario-inventory", "D2-data-split", "I1-train-consumes", "I2-official-path",
-                     "I3-other-info-rules", "D3-workspace-data"]
+    assert len(a) == 28 and len(b) == 25
+    assert a[:6] == ["D1-scenario-inventory", "D2-data-split", "D2b-data-axes", "I1-train-consumes",
+                     "I2-official-path", "I3-other-info-rules"]
     assert b == [s for s in a if not s.startswith("H")]
     assert IA.steps_for(registry, "update") == []
 
@@ -136,7 +136,7 @@ def test_csi_migrate_resolves(registry):
     assert r["O1-time-budget"].lock == "O1.TIME_BUDGET=3600"
     assert r["O2-gpus-parallel"].lock == "O2.GPUS=[0,1]; O2.MAX_PARALLEL=2"
     assert r["O4-repro-determinism"].lock == "O4.SEED=42"
-    assert r["I1-train-consumes"].step == 3 and r["O4-repro-determinism"].step == 27
+    assert r["I1-train-consumes"].step == 4 and r["O4-repro-determinism"].step == 28
     # 未登记题只作参考
     assert "D2-data-split" in res.reference_only
     assert any("数据划分" in w for w in res.warnings)
@@ -263,7 +263,8 @@ def test_cli_lock_steps_template():
     assert _run("lock", "--slug", "I2", "--choice", "B").returncode == 1  # 缺 impl/rule
     r2 = _run("steps", "--workflow", "build")
     lines = r2.stdout.strip().splitlines()
-    assert len(lines) == 24 and lines[2].endswith("I1-train-consumes")
+    assert len(lines) == 25 and lines[2].endswith("D2b-data-axes")
+    assert lines[3].endswith("I1-train-consumes")
     r3 = _run("template", "--workflow", "migrate")
     assert r3.returncode == 0 and "version: 1" in r3.stdout and "训练许用材料" in r3.stdout
 
@@ -459,6 +460,7 @@ def _confirm_stub_answers(*, i1: dict, t1: dict) -> dict:
         "对齐理解": {"user": "pinn-fig5", "lock": "P0=fiber-nlse-pinn"},
         "场景清单": {"user": "fig5", "lock": "D1=fig5"},
         "数据划分": {"user": "no-split", "lock": "D2=no-split-files"},
+        "数据维度含义": {"axes": [], "names": []},
         "训练许用材料": i1,
         "官方打分通道": {"choice": "A"},
         "其他信息规矩": {"choice": "none"},

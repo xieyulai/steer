@@ -68,13 +68,28 @@ questions:
     source_aligned: true
     answers: {skip_allowed: false, reason: 划分默认仍问（1817 §7）}
 
+  - slug: D2b-data-axes
+    key: 数据维度含义
+    aliases: [data_axes, 每一维是什么]
+    theme: 场景与数据
+    entries: [A, B, U]
+    step: {A: 3, B: 3}
+    depends_on: [D2-data-split]
+    ask: 这份数据每一维代表什么？先给出从代码或答题卡读到的推荐，再请人确认。不要把别的课题的维度写成本题默认。
+    answers: {skip_allowed: false, reason: 轴义确认后才能写进题面}
+    kind: value
+    fields:
+      axes: {type: list_int, required: true, help: "各维长度。没有长度的记录写 []"}
+      names: {type: list, required: true, help: "与长度一一对应的轴名；记录型数据只写段名"}
+    lock: "D2b.AXES=[{axes}]; D2b.NAMES=[{names}]"
+
   - slug: I1-train-consumes
     key: 训练许用材料
     aliases: [train_consumes, 训练可以用哪些材料, 训练能用什么材料]
     theme: 信息权限
     entries: [A, B, U]
-    step: {A: 3, B: 3}
-    depends_on: [D2-data-split]
+    step: {A: 4, B: 4}
+    depends_on: [D2b-data-axes]
     source_aligned: true
     ask: 训练时哪些数据能碰、哪些只能等打分时才打开？
     answers: {skip_allowed: true}
@@ -102,7 +117,7 @@ questions:
     aliases: [official_path, 官方分怎么算, 官方分路径]
     theme: 信息权限
     entries: [A, B, U]
-    step: {A: 4, B: 4}
+    step: {A: 5, B: 5}
     depends_on: [D2-data-split, I1-train-consumes]
     source_aligned: true
     ask: 官方分必须走哪条路算出来？
@@ -132,7 +147,7 @@ questions:
     aliases: [other_info_rules, 还有别的规矩吗, 其他规矩]
     theme: 信息权限
     entries: [A, B, U]
-    step: {A: 5, B: 5}
+    step: {A: 6, B: 6}
     depends_on: [I1-train-consumes, I2-official-path]
     ask: 除了训练材料与打分通道，还有没有别的信息不许乱流？
     answers: {skip_allowed: true}
@@ -156,7 +171,7 @@ questions:
     aliases: [workspace_data]
     theme: 场景与数据
     entries: [A, B, U]
-    step: {A: 6, B: 6}
+    step: {A: 7, B: 7}
     depends_on: [D2-data-split, I1-train-consumes]
     answers: {skip_allowed: false}
 
@@ -165,7 +180,7 @@ questions:
     aliases: [repro_data]
     theme: 场景与数据
     entries: [A, B, U]
-    step: {A: 7, B: 7}
+    step: {A: 8, B: 8}
     depends_on: [D3-workspace-data]
     answers: {skip_allowed: false}
 
@@ -198,7 +213,7 @@ questions:
     aliases: [legacy_artifacts, 旧台账]
     theme: 旧资产清理
     entries: [A, U]
-    step: {A: 8}
+    step: {A: 9}
     depends_on: [D4-repro-data]
     answers: {skip_allowed: false}
 
@@ -207,7 +222,7 @@ questions:
     aliases: [experience]
     theme: 旧资产清理
     entries: [A, U]
-    step: {A: 9}
+    step: {A: 10}
     depends_on: [H1-legacy-artifacts]
     answers: {skip_allowed: false}
 
@@ -216,7 +231,7 @@ questions:
     aliases: [agent_boundary, 旧README硬规则]
     theme: 旧资产清理
     entries: [A, U]
-    step: {A: 10}
+    step: {A: 11}
     depends_on: [H1-legacy-artifacts]
     answers: {skip_allowed: false}
 
@@ -225,7 +240,7 @@ questions:
     aliases: [loss_layers, 常见可试, data_loss, 场监督]
     theme: 训练方式
     entries: [A, B, U]
-    step: {A: 11, B: 8}
+    step: {A: 12, B: 9}
     depends_on: [D2-data-split]
     answers: {skip_allowed: false}
     # 整题仍现场确认；confirm_only / 映射里可带 common_try.data_loss（yes=按钮开，缺省 no）
@@ -236,7 +251,7 @@ questions:
     aliases: [callchain]
     theme: 训练方式
     entries: [A, B, U]
-    step: {A: 12, B: 9}
+    step: {A: 13, B: 10}
     depends_on: [T1-loss-layers]
     source_aligned: true
     answers: {skip_allowed: false}
@@ -246,7 +261,7 @@ questions:
     aliases: [metrics, 主/辅指标]
     theme: 主指标
     entries: [A, B, U]
-    step: {A: 13, B: 10}
+    step: {A: 14, B: 11}
     depends_on: [D2-data-split]
     source_aligned: true
     answers: {skip_allowed: false}
@@ -256,7 +271,7 @@ questions:
     aliases: [experiment_mode, exploration_mode]
     theme: 实验目标
     entries: [A, B, U]
-    step: {A: 14, B: 11}
+    step: {A: 15, B: 12}
     depends_on: [E1-metrics]
     ask: 这轮主攻把分做高，还是也要逼 Agent 试新方法？
     answers: {skip_allowed: true}
@@ -274,7 +289,7 @@ questions:
     aliases: [goal_value, 主指标目标]
     theme: 实验目标
     entries: [A, B, U]
-    step: {A: 15, B: 12}
+    step: {A: 16, B: 13}
     depends_on: [G1-experiment-mode]
     ask: 主分要到多少算「最终达标、自动停」？
     answers: {skip_allowed: true}
@@ -289,7 +304,7 @@ questions:
     aliases: [metric_tier]
     theme: 评估与成绩记录
     entries: [A, B, U]
-    step: {A: 16, B: 13}
+    step: {A: 17, B: 14}
     depends_on: [E1-metrics]
     answers: {skip_allowed: false}
 
@@ -298,7 +313,7 @@ questions:
     aliases: [official_test]
     theme: 评估与成绩记录
     entries: [A, B, U]
-    step: {A: 17, B: 14}
+    step: {A: 18, B: 15}
     depends_on: [D2-data-split, I2-official-path]
     source_aligned: true
     answers: {skip_allowed: false, reason: 官方终评默认仍问（1817 §7）}
@@ -308,7 +323,7 @@ questions:
     aliases: [train_eval]
     theme: 评估与成绩记录
     entries: [A, B, U]
-    step: {A: 18, B: 15}
+    step: {A: 19, B: 16}
     depends_on: [T2-callchain, D2-data-split]
     source_aligned: true
     answers: {skip_allowed: false, reason: 训内评估默认仍问（1817 §7）}
@@ -318,7 +333,7 @@ questions:
     aliases: [tsv_columns]
     theme: 评估与成绩记录
     entries: [A, B, U]
-    step: {A: 19, B: 16}
+    step: {A: 20, B: 17}
     depends_on: [E2-metric-tier]
     answers: {skip_allowed: false}
 
@@ -327,7 +342,7 @@ questions:
     aliases: [scenario]
     theme: 评估与成绩记录
     entries: [A, B, U]
-    step: {A: 20, B: 17}
+    step: {A: 21, B: 18}
     depends_on: [G1-experiment-mode, G2-goal-value, D1-scenario-inventory]
     answers: {skip_allowed: false}
 
@@ -336,7 +351,7 @@ questions:
     aliases: [run_context]
     theme: 评估与成绩记录
     entries: [A, B, U]
-    step: {A: 21, B: 18}
+    step: {A: 22, B: 19}
     depends_on: [E5-tsv-columns]
     answers: {skip_allowed: false}
 
@@ -345,7 +360,7 @@ questions:
     aliases: [checkpoint]
     theme: 评估与成绩记录
     entries: [A, B, U]
-    step: {A: 22, B: 19}
+    step: {A: 23, B: 20}
     depends_on: [T2-callchain]
     answers: {skip_allowed: false}
 
@@ -354,7 +369,7 @@ questions:
     aliases: [keep, 单次进步线]
     theme: 评估与成绩记录
     entries: [A, B, U]
-    step: {A: 23, B: 20}
+    step: {A: 24, B: 21}
     depends_on: [E1-metrics, E8-checkpoint]
     answers: {skip_allowed: false, reason: 须按指标族给 ≥3 档现场选；禁默认 0.5%}
 
@@ -363,7 +378,7 @@ questions:
     aliases: [time_budget, 单次训练最长多久]
     theme: 运行设置
     entries: [A, B, U]
-    step: {A: 24, B: 21}
+    step: {A: 25, B: 22}
     depends_on: []
     ask: 单次训练最多跑多少墙钟秒（0 = 不限）？
     answers: {skip_allowed: true}
@@ -377,7 +392,7 @@ questions:
     aliases: [gpus_parallel, GPU 与并行, 机器占用]
     theme: 运行设置
     entries: [A, B, U]
-    step: {A: 25, B: 22}
+    step: {A: 26, B: 23}
     depends_on: [O1-time-budget]
     ask: 用哪些 GPU、单轮最多同时跑几个训练？
     answers: {skip_allowed: true}
@@ -392,7 +407,7 @@ questions:
     aliases: [baseline_anchors]
     theme: 运行设置
     entries: [A, B, U]
-    step: {A: 26, B: 23}
+    step: {A: 27, B: 24}
     depends_on: [G1-experiment-mode, E6-scenario]
     answers: {skip_allowed: false, reason: 须会前找对照并核测试条件}
 
@@ -401,7 +416,7 @@ questions:
     aliases: [repro_determinism, 随机种子]
     theme: 运行设置
     entries: [A, B, U]
-    step: {A: 27, B: 24}
+    step: {A: 28, B: 25}
     depends_on: [D4-repro-data]
     ask: 随机种子定多少？
     answers: {skip_allowed: true}
