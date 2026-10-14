@@ -13,9 +13,9 @@ META_MARKER = "## 元数据"
 
 # workflow 维度(PR1.6 加,PR2.5 切到单维度)
 MIN_ENTRIES_BY_WORKFLOW = {
-    "build": 25,    # greenfield 24 步 + 准备（2026-09 信息权限 I1–I3 入题；原 22）
-    "migrate": 28,  # 迁入 27 步 + 准备（含 H1-H3；原 25）
-    "update": 15,   # 二次 init 步数
+    "build": 26,    # 从零立项 25 步 + 准备
+    "migrate": 29,  # 迁入 28 步 + 准备
+    "update": 16,   # 二次立项
 }
 
 
