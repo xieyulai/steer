@@ -314,7 +314,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 #### 5.1.0 实验模式（G1；6 档）
 
 ```
-【实验目标 · 第 14 / 共 28 步】
+【实验目标 · 第 15 / 共 28 步】
 - 我看到的现状：主指标是「…」（上一步 E1 已确认）；模板默认是「先把主指标做上去」。
 - 这一步在定：项目整体方向（5 显式档 + auto = 6 选 1）。
   - 5 显式档：自己管升档（撞墙后 reflect 写建议，不动 yaml）
@@ -339,7 +339,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **careful（A）**
 
 ```
-【实验目标 · 第 15 / 共 28 步】
+【实验目标 · 第 16 / 共 28 步】
 - 这一步在定：主指标要到多少算「最终达标、自动停」（careful 档 = 保守，建议设低一点的目标值）。
 - 我的建议：careful 不强求完美；多数项目 0.85-0.90 即可。
 - 你怎么选：
@@ -352,7 +352,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **optimize / innovate / aggressive + M1 比例类准确率 + 简单分类（MNIST / FMNIST / CIFAR-10 等）**
 
 ```
-【实验目标 · 第 15 / 共 28 步】
+【实验目标 · 第 16 / 共 28 步】
 - 这一步在定：主指标要到多少算「最终达标、自动停」。
 - 我看到的现状：主指标是「测试集准确率」；G1 你已选 <optimize/innovate/aggressive>。
 - 我的建议：
@@ -369,7 +369,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **optimize / innovate / aggressive + M2/M3/M4 损失 / 误差 / 相对误差 / M5 RL 回报**
 
 ```
-【实验目标 · 第 15 / 共 28 步】
+【实验目标 · 第 16 / 共 28 步】
 - 这一步在定：主指标最终要到多少算达标即停。
 - 我的建议：默认「暂不设」，避免拍错目标过早停或永远停不下来。
 - 你怎么选：
@@ -381,7 +381,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **explore（E）**
 
 ```
-【实验目标 · 第 15 / 共 28 步】
+【实验目标 · 第 16 / 共 28 步】
 - 我看到的现状：你选了「先摸底」；默认不设数值主目标。
 - 我的建议：摸底期不设硬目标；若担心指标崩，可加一条「不低于 ___」的护栏（可选）。
 - 你怎么选：
@@ -393,7 +393,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **auto（F）**
 
 ```
-【实验目标 · 第 15 / 共 28 步】
+【实验目标 · 第 16 / 共 28 步】
 - 我看到的现状：你选了「放手让系统撞墙自动升档」；auto 起步 optimize，撞墙后升 innovate → aggressive。
 - 这一步在定：auto 模式下 effective_mode 实际生效档的硬停线（注意：auto 撞墙后 mode 会自动变；G2 设的目标值是 effective_mode 实际档的硬停线）。
 - 我的建议：auto 起步 = optimize，跟 optimize 同档位建议。
@@ -413,7 +413,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **对用户主题**：场景探索方案（**不是**再问「要不要探索」——**实验目标**已在 G 定过）。
 
 ```
-【场景探索方案 · 第 20 / 共 28 步】
+【场景探索方案 · 第 21 / 共 28 步】
 - 我看到的现状：
   - 你已选：{G1 人话主线，如「先把主指标做上去」}
   - D1 已锁场景：reference（对照库）/ automatic（Agent 自主提出）…
@@ -437,8 +437,8 @@ Agent **必须**查 E1 内部 `metric_family` 与 [`metric-family-keep-presets.y
 **M1 比例类示例（FMNIST / 分类准确率）**
 
 ```
-【怎么算更好 · 第 23 / 共 28 步】
-- 这一步在定：单次实验比历史最好「好多少」才算更好、要留下来（和第 12 步「最终目标」不是一条线）。
+【怎么算更好 · 第 24 / 共 28 步】
+- 这一步在定：单次实验比历史最好「好多少」才算更好、要留下来（和第 16 步「最终目标」不是一条线）。
 - 我看到的现状：主指标是「测试集准确率」，越大越好；成绩按场景分开比（E6 已确认）。
 - 我的建议：这是典型的比例类准确率。不用先跑实验，按指标性质先定进步线；以后觉得太松或太严可以改配置。
   · 推荐：涨 0.1% 就算更好 — 高平台期常见波动在这一档，适合微调
@@ -666,7 +666,7 @@ bash sandbox-auto-nn/sandbox/bin/sandbox-init --tmux <name> --fast
    - 推断 backbone / dataset / loss / metric / time_budget
    - 推断 framework 信号（pyproject deps / `@register_*` / site-packages → name + mutability）
 3. 一次性答 28 步（10-15 秒；`--answers` 命中的题直接取清单值）：
-   for step in [P0, D1, D2, ..., F1]:
+   for step in [P0, D1, D2, D2b, ..., F1]:
        answer = agent 推断 (基于扫描结果)
        scripts/append-init-qa-log.py append --step <step> --user <answer>
 4. close init-qa-log
