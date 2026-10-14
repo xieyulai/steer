@@ -471,6 +471,11 @@ def normalize_answer(question: Question, raw: Any) -> tuple[str | None, dict[str
     for extra in body:
         errors.append(f"{question.key}：未知字段 {extra}")
 
+    axes = fields.get("axes")
+    names = fields.get("names")
+    if isinstance(axes, list) and isinstance(names, list) and axes and len(axes) != len(names):
+        errors.append(f"{question.key}：轴长度和轴名必须一样多")
+
     if choice is not None:
         for req in question.options[choice].get("requires") or []:
             v = fields.get(req)

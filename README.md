@@ -302,7 +302,7 @@ You do not need this before the first run. Order follows the experiment: onboard
 
 | Block | What |
 |---|---|
-| [What onboarding asks](#init-qa) | 27 questions when connecting a repo / 24 from scratch; includes information permissions |
+| [What onboarding asks](#init-qa) | 28 questions when connecting a repo / 25 from scratch; includes what each axis means, and information permissions |
 | [Exploration style](#explore-style) | Careful / Optimize / Innovate / Aggressive / Explore / Auto |
 | [Project config](#nn-config) | Connected-project `nn-config.yaml` (target, metric, scenario), and which skill edits it |
 | [Human instructions](#human-guidance) | Fairness rules and staged plan |
@@ -312,20 +312,20 @@ You do not need this before the first run. Order follows the experiment: onboard
 
 ### What onboarding asks
 
-One question at a time. **27** when connecting an existing repo; **24** from scratch (no “legacy assets” trio). When migrating, follow the source repo.
+One question at a time. **28** when connecting an existing repo; **25** from scratch (no “legacy assets” trio). When migrating, follow the source repo.
 
 | Steps (migrate) | Theme | What it covers |
 |----------------|------|----------------|
-| before | Alignment | Task, data, scoring, how deep code changes may go (not one of the 27) |
-| 1–2 | Scenarios and data | Official experiment settings; train / val / final-test split |
-| 3–5 | **Information permissions** | What training may touch; how the official score must be computed; any other rules |
-| 6–7 | Scenarios and data (continued) | Where loading and augmentation live; which data snapshot to lock |
-| 8–10 | Legacy assets | Old scoreboards, notes, hard rules from old docs (**migrate only**) |
-| 11–12 | Training | What in the objective may move; how the loop runs |
-| 13 | Main metric | Main and extra scores |
-| 14–15 | Campaign | What this campaign is for; what main-score value stops it |
-| 16–23 | Scoring and the scoreboard | Columns, during/after training, what counts as better |
-| 24–27 | Run settings | Wall-clock, GPUs, two rulers, seed |
+| before | Alignment | Task, data, scoring, how deep code changes may go (not one of the 28) |
+| 1–3 | Scenarios and data | Official experiment settings; train / val / final-test split; what each axis means |
+| 4–6 | **Information permissions** | What training may touch; how the official score must be computed; any other rules |
+| 7–8 | Scenarios and data (continued) | Where loading and augmentation live; which data snapshot to lock |
+| 9–11 | Legacy assets | Old scoreboards, notes, hard rules from old docs (**migrate only**) |
+| 12–13 | Training | What in the objective may move; how the loop runs |
+| 14 | Main metric | Main and extra scores |
+| 15–16 | Campaign | What this campaign is for; what main-score value stops it |
+| 17–24 | Scoring and the scoreboard | Columns, during/after training, what counts as better |
+| 25–28 | Run settings | Wall-clock, GPUs, two rulers, seed |
 | end | Confirm the spec | Locks the spec; **not** “onboarding done” |
 
 #### Alignment
@@ -340,6 +340,7 @@ One question at a time. **27** when connecting an existing repo; **24** from scr
 |--------|-----|--------------|-----------------|-----------|
 | 1 | 1 | Which official experiment settings? | How many scenarios scores are kept under, and each start config | List “what we measure + default run”. One setting per official protocol. Follow the source when migrating. |
 | 2 | 2 | How are train / val / final-test split? | Which split is the official score, and whether training may see it | Typical: train on train, val during training, test only at the end. Follow the source when migrating. |
+| 3 | 3 | What does each axis mean? | The order used when the flat vector is split back apart | Use this dataset’s own lengths and names. Records with no lengths leave the length list empty and name the segments. When both are filled, they must be the same length. |
 
 <a id="init-qa-info"></a>
 
@@ -349,16 +350,16 @@ Answers go into the contract; training is checked against them.
 
 | Migrate | New | What it asks | What it decides | If unsure |
 |--------|-----|--------------|-----------------|-----------|
-| 3 | 3 | What may training touch? | Which data training may use vs open only at scoring | Training may use only what training is allowed to use; score-only material opens at scoring. Nothing is score-only → choose none. Training that never reads data files is the third option. Follow the source when migrating. |
-| 4 | 4 | How must the official score be computed? | The only allowed scoring path | Usually: the model sees the input and produces the score. Restricted path if the official score must go through a prescribed procedure and no other route counts. Locked eval-state if scoring must happen in a specified state. Follow the source when migrating. |
-| 5 | 5 | Any other information rules? | Anything besides the two questions above | Choose none if none. Otherwise list them. |
+| 4 | 4 | What may training touch? | Which data training may use vs open only at scoring | Training may use only what training is allowed to use; score-only material opens at scoring. Nothing is score-only → choose none. Training that never reads data files is the third option. Follow the source when migrating. |
+| 5 | 5 | How must the official score be computed? | The only allowed scoring path | Usually: the model sees the input and produces the score. Restricted path if the official score must go through a prescribed procedure and no other route counts. Locked eval-state if scoring must happen in a specified state. Follow the source when migrating. |
+| 6 | 6 | Any other information rules? | Anything besides the two questions above | Choose none if none. Otherwise list them. |
 
 #### Scenarios and data (continued)
 
 | Migrate | New | What it asks | What it decides | If unsure |
 |--------|-----|--------------|-----------------|-----------|
-| 6 | 6 | Where do loading and augmentation live? | Which layer reads data and augments | Follow the agent’s read of the code. Keep augmentation in editable implementation, not the frozen contract. |
-| 7 | 7 | Which data snapshot for reproduction? | Same data on another machine | Record the data root or version. If there is no version, the directory you use now. |
+| 7 | 7 | Where do loading and augmentation live? | Which layer reads data and augments | Follow the agent’s read of the code. Keep augmentation in editable implementation, not the frozen contract. |
+| 8 | 8 | Which data snapshot for reproduction? | Same data on another machine | Record the data root or version. If there is no version, the directory you use now. |
 
 #### Legacy assets (migrate only)
 
@@ -366,51 +367,51 @@ From scratch, these three steps are omitted; later step numbers are 3 lower.
 
 | Migrate | New | What it asks | What it decides | If unsure |
 |--------|-----|--------------|-----------------|-----------|
-| 8 | — | Bring old scoreboards and run dirs? | Whether the new project keeps old numbers | Usually start empty. Keep them only if you still need to compare against old scores. |
-| 9 | — | Bring old notes? | Keep / rewrite / drop experience notes | Starting from scratch, you can rewrite. Keep excerpts if they still help. |
-| 10 | — | Keep hard rules from old docs? | e.g. “must use this optimizer” | Keep if still binding; drop if it was only a habit. |
+| 9 | — | Bring old scoreboards and run dirs? | Whether the new project keeps old numbers | Usually start empty. Keep them only if you still need to compare against old scores. |
+| 10 | — | Bring old notes? | Keep / rewrite / drop experience notes | Starting from scratch, you can rewrite. Keep excerpts if they still help. |
+| 11 | — | Keep hard rules from old docs? | e.g. “must use this optimizer” | Keep if still binding; drop if it was only a habit. |
 
 #### Training
 
 | Migrate | New | What it asks | What it decides | If unsure |
 |--------|-----|--------------|-----------------|-----------|
-| 11 | 8 | What in the training objective may move? | **Not** “which loss now”, but the floor for later auto-edits | Follow must-keep / may-swap / may-add / knobs-only. Set the floor from the task. |
-| 12 | 9 | How does the training loop run? | Loops and when scoring happens | Follow the agent’s sketch of the code. Follow the source when migrating. |
+| 12 | 9 | What in the training objective may move? | **Not** “which loss now”, but the floor for later auto-edits | Follow must-keep / may-swap / may-add / knobs-only. Set the floor from the task. |
+| 13 | 10 | How does the training loop run? | Loops and when scoring happens | Follow the agent’s sketch of the code. Follow the source when migrating. |
 
 #### Main metric
 
 | Migrate | New | What it asks | What it decides | If unsure |
 |--------|-----|--------------|-----------------|-----------|
-| 13 | 10 | Main and extra scores? | Which number ranks runs | The main score is the number used to rank runs; extras are secondary. Follow the source when migrating. |
+| 14 | 11 | Main and extra scores? | Which number ranks runs | The main score is the number used to rank runs; extras are secondary. Follow the source when migrating. |
 
 #### Campaign
 
 | Migrate | New | What it asks | What it decides | If unsure |
 |--------|-----|--------------|-----------------|-----------|
-| 14 | 11 | What is this campaign for? | Push the score, try new methods, or explore | **Default: raise the main score first.** Go deeper if you want new methods; explore if you don’t want a stop-line yet. |
-| 15 | 12 | What main-score value stops the campaign? | Final target, not “is this round an improvement” | **Default: leave unset.** Explore mode only asks a floor, not a main target. |
+| 15 | 12 | What is this campaign for? | Push the score, try new methods, or explore | **Default: raise the main score first.** Go deeper if you want new methods; explore if you don’t want a stop-line yet. |
+| 16 | 13 | What main-score value stops the campaign? | Final target, not “is this round an improvement” | **Default: leave unset.** Explore mode only asks a floor, not a main target. |
 
 #### Scoring and the scoreboard
 
 | Migrate | New | What it asks | What it decides | If unsure |
 |--------|-----|--------------|-----------------|-----------|
-| 16 | 13 | Which scores are main table columns? | Main vs notes | Main score in the main columns. Follow the suggestion. |
-| 17 | 14 | Official score **after** training? | Must match “how the official score is computed” | One official pass at the end, through the contract’s scoring path. Follow the source when migrating. |
-| 18 | 15 | Score **during** training? | Every epoch / never / sparse | Score a process metric each loop if useful; sparse if training is very slow. Follow the source when migrating. |
-| 19 | 16 | Which scoreboard columns? | Header blocks; keep the baseline-role column | Follow the suggestion. Don’t add empty columns for looks. |
-| 20 | 17 | What may change each round, how to compare scenarios? | Search rules, not “whether to search” | **One change per round; best scores compared per scenario.** Don’t change architecture and LR together. |
-| 21 | 18 | Which hyperparameters to log? | So you can tell which settings produced a row | LR, batch size, seed, etc. Tick the suggestion. |
-| 22 | 19 | Save best or last weights? | Can you replay that run | Usually the best validation checkpoint. Last-only if disk is tight. |
-| 23 | 20 | How much better than history to keep? | Separate from the campaign stop-line | Too strict and later rounds never keep. If unsure, use the smallest lift that still means “this run is better”; follow the agent’s suggestion. |
+| 17 | 14 | Which scores are main table columns? | Main vs notes | Main score in the main columns. Follow the suggestion. |
+| 18 | 15 | Official score **after** training? | Must match “how the official score is computed” | One official pass at the end, through the contract’s scoring path. Follow the source when migrating. |
+| 19 | 16 | Score **during** training? | Every epoch / never / sparse | Score a process metric each loop if useful; sparse if training is very slow. Follow the source when migrating. |
+| 20 | 17 | Which scoreboard columns? | Header blocks; keep the baseline-role column | Follow the suggestion. Don’t add empty columns for looks. |
+| 21 | 18 | What may change each round, how to compare scenarios? | Search rules, not “whether to search” | **One change per round; best scores compared per scenario.** Don’t change architecture and LR together. |
+| 22 | 19 | Which hyperparameters to log? | So you can tell which settings produced a row | LR, batch size, seed, etc. Tick the suggestion. |
+| 23 | 20 | Save best or last weights? | Can you replay that run | Usually the best validation checkpoint. Last-only if disk is tight. |
+| 24 | 21 | How much better than history to keep? | Separate from the campaign stop-line | Too strict and later rounds never keep. If unsure, use the smallest lift that still means “this run is better”; follow the agent’s suggestion. |
 
 #### Run settings
 
 | Migrate | New | What it asks | What it decides | If unsure |
 |--------|-----|--------------|-----------------|-----------|
-| 24 | 21 | Max wall-clock per training? | Timeout so jobs don’t hang | Seconds for your machine. Short to smoke; longer for search. 0 = unlimited (use sparingly). |
-| 25 | 22 | Which GPUs, how many parallel jobs? | Project GPU list and parallelism | To cap usage: put allowed indices in `~/.gpus`, then list the intersection here. No file → no cap; all local cards or empty. Parallel jobs ≤ listed GPUs. |
-| 26 | 23 | Set the two rulers first? | Naive lower bound and public reference | **Both recommended.** If no public method, say so; the agent can pick from later scores. |
-| 27 | 24 | Random seed? | Reproducibility | **42** is fine. Multi-seed robustness is a later question. |
+| 25 | 22 | Max wall-clock per training? | Timeout so jobs don’t hang | Seconds for your machine. Short to smoke; longer for search. 0 = unlimited (use sparingly). |
+| 26 | 23 | Which GPUs, how many parallel jobs? | Project GPU list and parallelism | To cap usage: put allowed indices in `~/.gpus`, then list the intersection here. No file → no cap; all local cards or empty. Parallel jobs ≤ listed GPUs. |
+| 27 | 24 | Set the two rulers first? | Naive lower bound and public reference | **Both recommended.** If no public method, say so; the agent can pick from later scores. |
+| 28 | 25 | Random seed? | Reproducibility | **42** is fine. Multi-seed robustness is a later question. |
 
 #### Confirm the spec
 

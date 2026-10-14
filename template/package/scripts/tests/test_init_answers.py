@@ -273,6 +273,14 @@ CSI_CONFIRM = SCRIPTS / "tests" / "fixtures" / "csi-short-code.answers.yaml"
 
 
 @pytest.mark.skipif(not CSI_CONFIRM.is_file(), reason="CSI 完整答卷举例 fixture 缺失")
+def test_d2b_rejects_unequal_axes_and_names(registry):
+    doc = yaml.safe_load(CSI_CONFIRM.read_text(encoding="utf-8"))
+    doc["answers"]["数据维度含义"] = {"axes": [2, 32], "names": ["iq", "tx", "rx", "rb"]}
+    res = IA.validate_answers(registry, doc, workflow="migrate", pattern="full_copy")
+    assert not res.ok
+    assert any("一样多" in e for e in res.errors)
+
+
 def test_csi_confirm_only_covers_all_migrate_steps(registry):
     doc = yaml.safe_load(CSI_CONFIRM.read_text(encoding="utf-8"))
     res = IA.validate_answers(registry, doc, workflow="migrate", pattern="full_copy")

@@ -489,6 +489,7 @@ migration-compare: exit 0 / 1（日期）
 |------|------|------|
 | **D1-scenario-inventory** | scenario-inventory | **场景清单**（四列白话表）；**须先于 D2** 用户签字 |
 | **D2-data-split** | data-split | 数据契约 + 划分 + 每场景 OFFICIAL_TEST |
+| **D2b-data-axes** | data-axes | **数据维度含义**：各维长度和轴名；记录型长度可为空，有长度时必须和轴名等长 |
 | **D3-workspace-data** | workspace-data | 训内数据处理在 workspace |
 | **D4-repro-data** | repro-data | 复现数据路径/版本 + `REPRO_ENV_KEYS` 数据项 |
 
@@ -496,6 +497,7 @@ migration-compare: exit 0 / 1（日期）
 |---|--------|---------|-----------|
 | D1-scenario-inventory | **场景清单签字** | 先钉「有几个官方世界、各测什么、运行档冻结什么」；**禁止**拖到 E6 才问 SIP/方法族 | D2/E3/E9 无场景锚点 → default 糊弄、跨 SIP 混 KEEP |
 | D2-data-split | **数据契约钉死** | 在 D1 已列 ID 下钉划分语义 + 每场景 test；见下专节 | 数据根漂移、val/test 混淆 → 不可比 / 误 KEEP |
+| D2b-data-axes | **数据维度含义** | 只写总长度时，模型会按别的项目的顺序切开 | 轴序抄拧，分数看起来像没学到 |
 | D3-workspace-data | **训内数据处理** | 增广/课程等在 workspace；不得污染 E2 eval 题集 | Agent 改错环节 |
 | D4-repro-data | **复现数据钉死** | 复现须对齐数据根/版本；写入 `contract/runtime.py` `REPRO_ENV_KEYS` 与 `exp_dir` `_repro` | 只看 `config.json` 不知 v2/v3；复现读错 CSV |
 
