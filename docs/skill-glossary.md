@@ -91,7 +91,7 @@
 | 内部码 | 对用户怎么说 |
 |--------|--------------|
 | `F1-contract` / `F1` | **口径汇总，请最终确认**（签字表；锁定口径，**不等于**迁完） |
-| `P0-project-brief` / `P0` | **对齐理解**（准备步，不计入 27/24 步） |
+| `P0-project-brief` / `P0` | **对齐理解**（准备步，不计入 28/25 步） |
 | `migration-compare` | 只读对比：旧项目与模板差在哪 |
 | `init-qa-log` / `.auto-nn/init-qa-log.md` | **init 问答逐步记录**（每步确认后 append；F1 签字后 close；迁后只读审计） |
 | `skill_activity_log` / `skill-activity.jsonl` | **全技能活动流**（`.auto-nn/`；`agent.skill_activity_log` 默认 true） |
@@ -117,15 +117,15 @@
 | 人话主题（对用户说） | 内部编码 |
 |----------------------|----------|
 | 对齐理解 | `P0-project-brief` |
-| 场景与数据 | `D1` → `D2` →（信息权限）→ `D3` → `D4` |
-| **信息权限** | `I1` → `I2` → `I3`（**D2 之后、D3 之前**；步 #3–#5） |
+| 场景与数据 | `D1` → `D2` → `D2b` →（信息权限 `I1`–`I3`）→ `D3` → `D4`（题序 **D1→D2→D2b→I→D3→D4**） |
+| **信息权限** | `I1` → `I2` → `I3`（**D2b 之后、D3 之前**；步 #4–#6） |
 | 旧资产清理 | `H1` → `H2` → `H3`（仅入口 A 迁入） |
 | 训练方式 | `T1` → `T2` |
 | 评估与台账 | `E1` → **`G1` → `G2`** → `E2` … `E9`（**实验目标须在场景探索方案 E6 之前**） |
 | 运行设置 | `O1` → … → `O4` |
 | 汇总确认（签字） | `F1-contract` |
 
-入口 A 共 **27** 步 + 准备步 + 单独签字轮；入口 B 共 **24** 步（无「旧资产清理」段）。机器可读题库：`template/package/docs/init/init-question-registry.yaml`（`python3 scripts/init_answers.py steps --workflow …`）。
+入口 A 共 **28** 步 + 准备步 + 单独签字轮；入口 B 共 **25** 步（无「旧资产清理」段）。机器可读题库：`template/package/docs/init/init-question-registry.yaml`（`python3 scripts/init_answers.py steps --workflow …`）。
 
 ### HARD-GATE 逐项（slug → 人话）
 
@@ -133,6 +133,7 @@
 |--------|--------------|------------------------------|
 | `D1-scenario-inventory` | **场景清单**（有几个官方世界、各测什么、起跑线配置） | 几种官方实验设定 + 各自起跑配置 |
 | `D2-data-split` | **数据划分**（训练/验证/测试怎么分；每场景官方终评集） | train/val/test 怎么分；终评用哪套数据 |
+| `D2b-data-axes` | **数据维度含义**（各维长度与轴名；须人确认，禁止写死某一课题维度为默认） | 张量各维代表什么 |
 | `I1-train-consumes` | **训练许用材料**（全部能训 / 只训练份并列出只评资产 / 训练不读任何数据文件；落 `INFO_PERM.eval_only_assets` / `strict_no_train_files`） | 训练能碰哪些数据、哪些只在打分时打开 |
 | `I2-official-path` | **官方打分通道**（整网前向 / 受限路径 + 手续函数 / 固定评测态；落 `INFO_PERM.official_path[_impl]`） | 官方分只能走哪条路算 |
 | `I3-other-info-rules` | **其他信息规矩**（均无 / 逐条；机器只管训练 batch 键白名单 `INFO_PERM.train_batch_keys`，其余标「机器不管」） | 还有没有别的信息不许乱流 |

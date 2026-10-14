@@ -37,8 +37,8 @@ flowchart TB
 
 | 入口 | 阶段 1 主题顺序 | 共几步 | 目标目录 |
 |------|----------------|--------|----------|
-| **A 迁入** | 对齐 → 场景与数据（前两问）→ **信息权限** → 场景与数据（后两问）→ 旧资产清理（先 M0 适配策略，仅 full_copy）→ 训练方式 → **主指标 → 实验目标** → 评估与其余成绩规则 → 运行设置 → 签字 | **27** | **必须** `new-project.sh` 新建，从旧项目选择性移植；禁止 `cp -r` 整包、禁止原地改旧仓 |
-| **B 立项** | 对齐 → 场景与数据（前两问）→ **信息权限** → 场景与数据（后两问）→ 训练方式 → **主指标 → 实验目标** → 评估与其余成绩规则 → 运行设置 → 签字 | **24** | `new-project.sh`（BUILD；标记 `# greenfield`） |
+| **A 迁入** | 对齐 → 场景与数据（**D1→D2→D2b**）→ **信息权限** → 场景与数据（**D3→D4**）→ 旧资产清理（先 M0 适配策略，仅 full_copy）→ 训练方式 → **主指标 → 实验目标** → 评估与其余成绩规则 → 运行设置 → 签字 | **28** | **必须** `new-project.sh` 新建，从旧项目选择性移植；禁止 `cp -r` 整包、禁止原地改旧仓 |
+| **B 立项** | 对齐 → 场景与数据（**D1→D2→D2b**）→ **信息权限** → 场景与数据（**D3→D4**）→ 训练方式 → **主指标 → 实验目标** → 评估与其余成绩规则 → 运行设置 → 签字 | **25** | `new-project.sh`（BUILD；标记 `# greenfield`） |
 
 **铁律**：签字（F1）**不等于**完成；完成 = 跑验收脚本 exit 0 **且** 短训通过。阶段 0–1 **只读**，签字前不改任何代码。
 
@@ -127,16 +127,16 @@ F1 `close` 后再 `--phase end --summary "口径汇总已签字"`。
 每一轮**只问一件事**，开头一行给人话主题 + 进度：
 
 ```
-【信息权限 · 第 3 / 共 27 步】
+【信息权限 · 第 4 / 共 28 步】
 ```
 
 英文用户：
 
 ```
-[Who can see what · step 3 / 27]
+[Who can see what · step 4 / 28]
 ```
 
-进度怎么数：见 reference「编号速查」的序号（入口 A 27 步 / 入口 B 24 步；机器可读：`python3 scripts/init_answers.py steps --workflow migrate|build`）。第一轮的「对齐理解」记作准备步，可写 `【对齐理解 · 开始前确认】`。
+进度怎么数：见 reference「编号速查」的序号（入口 A 28 步 / 入口 B 25 步；机器可读：`python3 scripts/init_answers.py steps --workflow migrate|build`）。第一轮的「对齐理解」记作准备步，可写 `【对齐理解 · 开始前确认】`。
 
 **主题块衔接**（进入新块的第一轮，进度抬头下加一行，≤1 句）：
 
@@ -183,7 +183,7 @@ C) I'll specify: ______
 
 > **必须用工具调用呈现可点选选项**（Claude Code 调 `AskUserQuestion` 工具；Cursor 用 option 卡片）；**禁止纯文本 A/B/C 或数字编号让用户手敲**。不要让用户回 `①` 配「选后锁定 / 口径备忘会写什么」这类内部表——那是你内部记录，不给用户看。
 >
-> **主推例外**：`--fast` 路线跳过 picker UI + 看项目答 27 步——由 in-tmux Claude CLI **扫描项目**（backbone/ datasets/ main.py / pyproject.toml）→ 一次性答 27 步 → 写 init-qa-log + close → 继续 phase 2-4。**默认走 picker**，必须用户/父 Agent 明示才走 fast。详见下文「fast 路线」章节。
+> **主推例外**：`--fast` 路线跳过 picker UI + 看项目答 28 步——由 in-tmux Claude CLI **扫描项目**（backbone/ datasets/ main.py / pyproject.toml）→ 一次性答 28 步 → 写 init-qa-log + close → 继续 phase 2-4。**默认走 picker**，必须用户/父 Agent 明示才走 fast。详见下文「fast 路线」章节。
 
 **用户确认后（可选，≤1 句）**：下一问发出前，可单独一行 recap，例如「好，旧成绩表不带过来，新项目从零记。」——**不要**贴 lock 原文或编码；recap 不进 `ask` 字段，必要时写入 `user` 或省略。
 
@@ -251,9 +251,9 @@ B) 有偏差，我帮你改：______
 
 | workflow (3) | object_type (3) | 入口 | 步数 |
 |--------------|------------------|------|------|
-| build(无 source_root) | data(无 .py)/ code(.py + 无 @register_*)/ framework(@register_* 命中) | B(从零搭) | 24 |
-| migrate(source_root ≠ repo_root) | 同上三分类 | A(迁入) | 27 + 决策 1-3 |
-| update(source_root == repo_root) | 同上三分类 | A(二次 init,增量) | 15 |
+| build(无 source_root) | data(无 .py)/ code(.py + 无 @register_*)/ framework(@register_* 命中) | B(从零搭) | 25 |
+| migrate(source_root ≠ repo_root) | 同上三分类 | A(迁入) | 28 + 决策 1-3 |
+| update(source_root == repo_root) | 同上三分类 | A(二次 init,增量) | 16 |
 
 2. **migrate pattern 维度**（仅 workflow=migrate 走此分支）：migrate 走完后，看源仓有没有 contract/：
 - 无 contract/（老 migration 路径） → pattern=port_to_contract（拆数据/指标/模型/loss）
@@ -275,7 +275,7 @@ B) 我觉得是别的：______
 
 ### 5. 签字（对应内部 F1-contract）
 
-27/24 步全部确认后，**单独一轮**给一张「口径汇总，请最终确认」的表（**仅人话行名**，禁止 slug / 函数名 / yaml 键），并说明：**这一步只是锁定口径，不代表迁移完成**；确认后才动代码。
+28/25 步全部确认后，**单独一轮**给一张「口径汇总，请最终确认」的表（**仅人话行名**，禁止 slug / 函数名 / yaml 键），并说明：**这一步只是锁定口径，不代表迁移完成**；确认后才动代码。
 
 **人话汇总表行名（示例，按项目删减）**：
 
@@ -314,7 +314,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 #### 5.1.0 实验模式（G1；6 档）
 
 ```
-【实验目标 · 第 14 / 共 27 步】
+【实验目标 · 第 14 / 共 28 步】
 - 我看到的现状：主指标是「…」（上一步 E1 已确认）；模板默认是「先把主指标做上去」。
 - 这一步在定：项目整体方向（5 显式档 + auto = 6 选 1）。
   - 5 显式档：自己管升档（撞墙后 reflect 写建议，不动 yaml）
@@ -339,7 +339,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **careful（A）**
 
 ```
-【实验目标 · 第 15 / 共 27 步】
+【实验目标 · 第 15 / 共 28 步】
 - 这一步在定：主指标要到多少算「最终达标、自动停」（careful 档 = 保守，建议设低一点的目标值）。
 - 我的建议：careful 不强求完美；多数项目 0.85-0.90 即可。
 - 你怎么选：
@@ -352,7 +352,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **optimize / innovate / aggressive + M1 比例类准确率 + 简单分类（MNIST / FMNIST / CIFAR-10 等）**
 
 ```
-【实验目标 · 第 15 / 共 27 步】
+【实验目标 · 第 15 / 共 28 步】
 - 这一步在定：主指标要到多少算「最终达标、自动停」。
 - 我看到的现状：主指标是「测试集准确率」；G1 你已选 <optimize/innovate/aggressive>。
 - 我的建议：
@@ -369,7 +369,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **optimize / innovate / aggressive + M2/M3/M4 损失 / 误差 / 相对误差 / M5 RL 回报**
 
 ```
-【实验目标 · 第 15 / 共 27 步】
+【实验目标 · 第 15 / 共 28 步】
 - 这一步在定：主指标最终要到多少算达标即停。
 - 我的建议：默认「暂不设」，避免拍错目标过早停或永远停不下来。
 - 你怎么选：
@@ -381,7 +381,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **explore（E）**
 
 ```
-【实验目标 · 第 15 / 共 27 步】
+【实验目标 · 第 15 / 共 28 步】
 - 我看到的现状：你选了「先摸底」；默认不设数值主目标。
 - 我的建议：摸底期不设硬目标；若担心指标崩，可加一条「不低于 ___」的护栏（可选）。
 - 你怎么选：
@@ -393,7 +393,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **auto（F）**
 
 ```
-【实验目标 · 第 15 / 共 27 步】
+【实验目标 · 第 15 / 共 28 步】
 - 我看到的现状：你选了「放手让系统撞墙自动升档」；auto 起步 optimize，撞墙后升 innovate → aggressive。
 - 这一步在定：auto 模式下 effective_mode 实际生效档的硬停线（注意：auto 撞墙后 mode 会自动变；G2 设的目标值是 effective_mode 实际档的硬停线）。
 - 我的建议：auto 起步 = optimize，跟 optimize 同档位建议。
@@ -413,7 +413,7 @@ python3 scripts/init_watchlist.py --profile <F1 选的 profile>
 **对用户主题**：场景探索方案（**不是**再问「要不要探索」——**实验目标**已在 G 定过）。
 
 ```
-【场景探索方案 · 第 20 / 共 27 步】
+【场景探索方案 · 第 20 / 共 28 步】
 - 我看到的现状：
   - 你已选：{G1 人话主线，如「先把主指标做上去」}
   - D1 已锁场景：reference（对照库）/ automatic（Agent 自主提出）…
@@ -437,7 +437,7 @@ Agent **必须**查 E1 内部 `metric_family` 与 [`metric-family-keep-presets.y
 **M1 比例类示例（FMNIST / 分类准确率）**
 
 ```
-【怎么算更好 · 第 23 / 共 27 步】
+【怎么算更好 · 第 23 / 共 28 步】
 - 这一步在定：单次实验比历史最好「好多少」才算更好、要留下来（和第 12 步「最终目标」不是一条线）。
 - 我看到的现状：主指标是「测试集准确率」，越大越好；成绩按场景分开比（E6 已确认）。
 - 我的建议：这是典型的比例类准确率。不用先跑实验，按指标性质先定进步线；以后觉得太松或太严可以改配置。
@@ -620,7 +620,7 @@ python3 scripts/init_answers.py export --repo-root <target>
 
 `--fast` 可叠用：清单命中的题直接取清单值，其余照旧看项目答；签完同样 export。
 
-## fast 路线（in-tmux Claude 看项目答 27 步，**主推自动化路线**）
+## fast 路线（in-tmux Claude 看项目答 28 步，**主推自动化路线**）
 
 ### 触发原则（P0 — 最高优先级）
 
@@ -658,14 +658,14 @@ bash sandbox-auto-nn/sandbox/bin/sandbox-init --tmux <name> --fast
 ### fast 路径 8 步流程
 
 ```
-1. in-tmux Claude 检测到 --fast flag → 跳过 picker 27 步 AskUserQuestion
+1. in-tmux Claude 检测到 --fast flag → 跳过 picker 28 步 AskUserQuestion
 2. 扫描项目（3-5 秒）：
    - ls / read README / read pyproject.toml / read main.py
    - 推断 entry (A/B)；workflow：`init_workflow.classify` / `--force-workflow` → build|migrate|update
    - 推断 object_type：`detect()` / `--force-object-type` → code|framework|data
    - 推断 backbone / dataset / loss / metric / time_budget
    - 推断 framework 信号（pyproject deps / `@register_*` / site-packages → name + mutability）
-3. 一次性答 27 步（10-15 秒；`--answers` 命中的题直接取清单值）：
+3. 一次性答 28 步（10-15 秒；`--answers` 命中的题直接取清单值）：
    for step in [P0, D1, D2, ..., F1]:
        answer = agent 推断 (基于扫描结果)
        scripts/append-init-qa-log.py append --step <step> --user <answer>
@@ -734,7 +734,7 @@ cat <target_root>/main.py 2>/dev/null | head -50    # 训练入口
 
 ### 关键不变量
 
-- ✅ **默认行为 100% 不变**（无 `--fast` → 走 picker 27 步）
+- ✅ **默认行为 100% 不变**（无 `--fast` → 走 picker 28 步）
 - ✅ **必须用户/父 Agent 明示**才走 fast
 - ✅ **in-tmux Claude CLI 仍是写主体**（原则 B）
 - ✅ **协议层 26/29 条 + F1 + close 必走**（不破）
