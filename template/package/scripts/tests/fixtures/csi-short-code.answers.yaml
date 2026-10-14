@@ -25,6 +25,10 @@ answers:
     user: 跟源项目划分；测试用户不进训练，只当官方终评。
     lock: D2=source-aligned; OFFICIAL_TEST=test-users
 
+  数据维度含义:
+    axes: []
+    names: [code]
+
   训练许用材料:
     choice: B
     eval_only_assets:
