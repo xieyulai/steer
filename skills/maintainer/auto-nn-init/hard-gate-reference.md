@@ -17,8 +17,8 @@ agent 对用户只说**人话主题 + 进度**；内部按右列编码逐项推�
 | 人话主题（对用户说） | 内部编码（本文 / F1 用） | 入口 |
 |----------------------|--------------------------|------|
 | 对齐理解 | P0-project-brief | A/B |
-| 场景与数据 | D1-scenario-inventory → D2-data-split →（信息权限三问）→ D3-workspace-data → D4-repro-data | A/B |
-| **信息权限** | **I1-train-consumes → I2-official-path → I3-other-info-rules**（D2 之后、D3 之前） | A/B |
+| 场景与数据 | D1-scenario-inventory → D2-data-split → D2b-data-axes →（信息权限三问）→ D3-workspace-data → D4-repro-data | A/B |
+| **信息权限** | **I1-train-consumes → I2-official-path → I3-other-info-rules**（D2b 之后、D3 之前） | A/B |
 | 旧资产清理 | H1-legacy-artifacts → H2-experience → H3-agent-boundary | 仅 A |
 | 训练方式 | T1-loss-layers → T2-callchain | A/B |
 | 评估与台账 | E1-metrics → E2-metric-tier → E3-official-test → E4-train-eval → E5-tsv-columns → E6-scenario → E7-run-context → E8-checkpoint → E9-keep | A/B |
@@ -27,9 +27,9 @@ agent 对用户只说**人话主题 + 进度**；内部按右列编码逐项推�
 | 汇总确认（签字） | F1-contract | A/B |
 
 **进度计数**（对用户的抬头 `第 N / 共 M`）：按 workflow 走不同步数。
-- workflow=build → 24 步 picker（原 B 入口；2026-09 起含信息权限 I1–I3，原 21）
-- workflow=migrate → 27 步 picker + 决策 1-3（原 A 入口,含原 migration + adapter；原 24）
-- workflow=update → 15 步 picker（原 A 入口 reinit）
+- workflow=build → 25 步 picker（原 B 入口；2026-09 起含信息权限 I1–I3，原 21）
+- workflow=migrate → 28 步 picker + 决策 1-3（原 A 入口,含原 migration + adapter；原 24）
+- workflow=update → 16 步 picker（原 A 入口 reinit）
 
 **绝不对用户暴露**：编码 slug（`H1-legacy-artifacts` 等）、`F1-contract`/`S_method`/`S_data`/`S_run`/`A_explore`/`E4_PATH` 等术语、块 A–F 全量盘点表、`选后锁定→F1 会写什么` 列。这些只在本文与 `.auto-nn/migration-summary.md` 内部使用。
 
@@ -47,11 +47,11 @@ agent 对用户只说**人话主题 + 进度**；内部按右列编码逐项推�
 
 **全阶段** HARD-GATE 编号格式为 **`<块><n>-<slug>`**（如 `H1-legacy-artifacts`、`E4-train-eval`）。问话、用户回复（`编号=①`）、F1-contract 汇总表行名**均用 slug**。
 
-**宏观顺序（入口 A）**：**P0 → M0（仅 full_copy，准备步） → D1–D2 → I1–I3 → D3–D4 → H → T → E1 → G → E2–E9 → O → F**（**D1–D3 先于 H1–H3**；**信息权限 I 在 D2 之后、D3 之前**（[阶段 I](#阶段-i信息权限谁能看什么-d2-之后d3-之前)）；**G1/G2 在 E1 之后、E6 之前**）。**入口 B**：**P0 → D1–D2 → I1–I3 → D3–D4 → T → E1 → G → E2–E9 → O → F**（无 H）。**E4-train-eval**、**E8-checkpoint** 须在 **T2-callchain** 之后。
+**宏观顺序（入口 A）**：**P0 → M0（仅 full_copy，准备步） → D1–D2–D2b → I1–I3 → D3–D4 → H → T → E1 → G → E2–E9 → O → F**（**D1–D3 先于 H1–H3**；**信息权限 I 在 D2b 之后、D3 之前**（[阶段 I](#阶段-i信息权限谁能看什么-d2b-之后d3-之前)）；**G1/G2 在 E1 之后、E6 之前**）。**入口 B**：**P0 → D1–D2–D2b → I1–I3 → D3–D4 → T → E1 → G → E2–E9 → O → F**（无 H）。**E4-train-eval**、**E8-checkpoint** 须在 **T2-callchain** 之后。
 
 **用户心智顺序**（与步号一致，入口 A）：对齐项目 → **场景+数据（含信息权限）** → 历史清理 → 怎么训 → **主指标** → **实验目标** → **评估其余（含场景探索方案）** → 机器 → 签字。
 
-**F1-contract** = 阶段 1 结束时锁定的 **口径合同表**（≠ 迁移完成）；仅在**入口 A migrate 27** / **入口 B build 24** / **二次 init update 15** 全部确认后的**单独一轮**汇总。
+**F1-contract** = 阶段 1 结束时锁定的 **口径合同表**（≠ 迁移完成）；仅在**入口 A migrate 28** / **入口 B build 25** / **二次 init update 16** 全部确认后的**单独一轮**汇总。
 
 ### 入口 A — 28 项速查
 
@@ -89,7 +89,7 @@ agent 对用户只说**人话主题 + 进度**；内部按右列编码逐项推�
 
 → 随后 **F1-contract** 汇总签字（不计入 28）。
 
-**P0-project-brief** 在 **#1 之前**单独一轮，**不计入** 28/25/16 项。见 [P0-project-brief](#p0-project-brief项目摘要确认不计入-272415-项)。
+**P0-project-brief** 在 **#1 之前**单独一轮，**不计入** 28/25/16 项。见 [P0-project-brief](#p0-project-brief项目摘要确认不计入-282516-项)。
 
 > **入口 A 为何 D 在 H 前？** 先钉「测谁、数据契约」，再清理旧台账/EXPERIENCE；H1 可对齐 D1 场景 ID。**信息权限 I 为何在 D2b 之后、D3 前？** D2 钉划分，D2b 钉每一维是什么，I1 再问谁能碰这些材料。**G1/G2 为何在 E6 前？** 探索方案与**实验目标**（模式 + 达标线）紧密相关——须先定「追数 / 方法+数 / 摸底」，再定「每轮允许改什么、场景怎么排期」；E6 **禁止**裸写内部轴名，须引用 G1 人话结论。**O3** 在 G + E6 之后，定该场景起步 **plain/reference 尺子**（起手改哪一类已由 G1 `exploration_mode`→`tier_start` 隐含；见 O3 节）。
 
@@ -354,7 +354,7 @@ migration-compare: exit 0 / 1（日期）
 
 > **交互：** 内部按本文编码 **每轮一问一编号**（先 P0 对齐），但**对用户只呈现人话**——见 [`SKILL.md`](SKILL.md)「用户可见交互协议」与本文下方 [Agent 交互规范](#agent-交互规范cursor--claude-code-通用)；不得批量贴 H1～O3 或整表 F1-contract。
 
-#### P0-project-brief（项目摘要确认，不计入 27/24/15 项）
+#### P0-project-brief（项目摘要确认，不计入 28/25/16 项）
 
 **目的**：在逐项澄清（H1/D1/…）之前，让用户对 Agent 的「项目理解」**对齐一次**；避免一上来就问 collocation、指标键，用户还不知道 Agent 是否看对了仓库。
 
@@ -404,7 +404,7 @@ migration-compare: exit 0 / 1（日期）
 
 ---
 
-**五阶段**逐项确认：入口 A **`P0 → D → H → T → E1 → G → E2–E9 → O → F`**（**24** 项）；入口 B **`P0 → D → T → E1 → G → E2–E9 → O → F`**（**21** 项，无 H）。**D 段**：D1→D2→D3→D4；**G 段**：G1→G2（**E1 后、E6 前**）；**E 段** 9 项 slug 不变，问话顺序见 [阶段 E 编号约定](#阶段-e-编号约定)。**须先 D1（场景清单）→ D2（划分）→ T2 → E1 → G1/G2 → E4/E8**（E4/E8 仍须在 T2 之后）。逐项话术见下文。
+**五阶段**逐项确认：入口 A **`P0 → D → H → T → E1 → G → E2–E9 → O → F`**（**28** 项）；入口 B **`P0 → D → T → E1 → G → E2–E9 → O → F`**（**25** 项，无 H）。**D 段**：D1→D2→D2b→D3→D4（**D2b 与 D3 之间**为阶段 I）；**G 段**：G1→G2（**E1 后、E6 前**）；**E 段** 9 项 slug 不变，问话顺序见 [阶段 E 编号约定](#阶段-e-编号约定)。**须先 D1（场景清单）→ D2（划分）→ D2b（维度）→ T2 → E1 → G1/G2 → E4/E8**（E4/E8 仍须在 T2 之后）。逐项话术见下文。
 
 **入口分支：**
 
@@ -482,7 +482,7 @@ migration-compare: exit 0 / 1（日期）
 
 #### 阶段 D 编号约定
 
-- **格式**：`D<n>-<slug>`（**D1-scenario-inventory → D2-data-split → D3-workspace-data → D4-repro-data**）；**D2 与 D3 之间**插入 [阶段 I 信息权限三问](#阶段-i信息权限谁能看什么-d2-之后d3-之前)（D2 定了数据，I 定谁能看）。
+- **格式**：`D<n>-<slug>`（**D1-scenario-inventory → D2-data-split → D2b-data-axes → D3-workspace-data → D4-repro-data**）；**D2b 与 D3 之间**插入 [阶段 I 信息权限三问](#阶段-i信息权限谁能看什么-d2b-之后d3-之前)（D2/D2b 定了数据与维度，I 定谁能看）。
 - **F1-contract 汇总表**须用 slug 行名。
 
 | 编号 | slug | 含义 |
@@ -723,15 +723,15 @@ SCENARIO_CANDIDATES: ngl01_sip3_mix
 
 【选后锁定】`D2b.AXES=[…]` 与 `D2b.NAMES=[…]`。阶段 2 写入 README `<!-- D2B_DATA_AXES -->`。域题面字段仍由该域的答题卡写入 `task_config.yaml`，本问不发明第二套键名。
 
-### 阶段 I：信息权限（"谁能看什么"）— **D2 之后、D3 之前**
+### 阶段 I：信息权限（"谁能看什么"）— **D2b 之后、D3 之前**
 
 > 三问的每个答案都对应 `contract/runtime.py` `INFO_PERM` 的一个字段；训练前守门 **G-信息权限**（`scripts/lib/info_perm.py`，无 env 旁路）据此静态扫描，`scripts/info_perm_gate.py` 对账 README 块。**只问机器能拦的**；机器拦不住的规矩在 I3 标「机器不管」。
 
 #### 阶段 I 编号约定
 
-- **格式**：`I<n>-<slug>`（**I1-train-consumes → I2-official-path → I3-other-info-rules**）；入口 A 为 **#3–#5**，入口 B 亦为 **#3–#5**；update 亦问（15 步内按 reference 题序）。
+- **格式**：`I<n>-<slug>`（**I1-train-consumes → I2-official-path → I3-other-info-rules**）；入口 A 为 **#4–#6**，入口 B 亦为 **#4–#6**；update 亦问（16 步内按 reference 题序）。
 - **F1-contract 汇总表**须用 slug 行名；锁文本用态 1 编码（`I1.CONSUMES=…; I1.EVAL_ONLY=[…]`），题库 `docs/init/init-question-registry.yaml` 给模板，`scripts/init_answers.py lock --slug I1 --choice B --field …` 可直接渲染。
-- **人话主题**：**信息权限**。三问衔接句（第 3 步开场）：「接下来三问定死：训练能用哪些材料、官方分从哪条路出来、还有没有别的信息规矩。」
+- **人话主题**：**信息权限**。三问衔接句（第 4 步开场）：「接下来三问定死：训练能用哪些材料、官方分从哪条路出来、还有没有别的信息规矩。」
 
 | # | 确认项 | 为什么问 | 答错的后果 |
 |---|--------|---------|-----------|
@@ -739,13 +739,13 @@ SCENARIO_CANDIDATES: ngl01_sip3_mix
 | I2-official-path | **官方打分通道** | 官方分是整网前向还是必须走受限手续（如只凭规定码还原）；机器据此要求 `contract/test.py run()` 必调手续函数并守交卷缝（IP4/IP5） | 旁路（skip connection、直接用输入）把受限任务算成整网任务 |
 | I3-other-info-rules | **其他信息规矩** | 兜底：还有没有别的信息不许乱流；机器只管训练 batch 键白名单（IP2），其余记 README 供人审 | 规矩只在人脑里，换 Agent 就丢 |
 
-**依赖**：I1 依赖 D2（数据与划分已列出）；I2 依赖 D2 + I1；I3 依赖 I1 + I2。E3-official-test 须与 I2 一致（C-I2）；D3 须与 I1 一致（C-I3）。
+**依赖**：I1 依赖 D2b（数据维度含义已锁定；划分见 D2）；I2 依赖 D2 + I1；I3 依赖 I1 + I2。E3-official-test 须与 I2 一致（C-I2）；D3 须与 I1 一致（C-I3）。
 
 #### 迁入铁律（入口 A · I1/I2 为源对齐题）
 
 **「推荐」= 源项目实际怎么做**：I1 推荐项须与 `source_root` 训练脚本实际读取的文件集一致；I2 推荐项须与源项目官方打分脚本实际调用链一致（源码里官方分必须走规定手续、不能换一条路算 → 推荐 B）。**禁止**把「更严」标成推荐。带 `--answers` 时 I1/I2 清单值与源码不一致 → 必出卡片「清单说 X，源项目是 Y」，不得静默跳问。
 
-#### I1-train-consumes — 训练许用材料（必遵；**D2 之后**）
+#### I1-train-consumes — 训练许用材料（必遵；**D2b 之后**）
 
 **开场须写**：`D2 TRAIN=…；OFFICIAL_TEST=…`（引用 D2 已锁划分）。
 
@@ -1286,7 +1286,7 @@ TEST: 顺序后 20%，仅 contract.test；若 E4 例外 ①-delegate-test 须在
 **可照抄骨架（Agent 填空后发出）**：
 
 ```text
-【训练方式 · 第 N / 共 27 步】
+【训练方式 · 第 N / 共 28 步】
 
 这一步在定什么
 - 不是问「现在用哪个 loss」。
@@ -1642,7 +1642,7 @@ python3 <template_root>/scripts/init_o3_abcde.py \
 ## 块 G — 实验目标配置（→ G1-experiment-mode～G2-goal-value；**E1-metrics 之后、E6-scenario 之前**）
 
 > **对用户主题**：**实验目标**（两轮：先选「这轮主要干什么」，再定「主指标要到多少 / 摸底护栏」）。  
-> **问话步号**：入口 A **#11–#12** / 入口 B **#8–#9**（在 **E1-metrics** 之后）。  
+> **问话步号**：入口 A **#15–#16** / 入口 B **#12–#13**（在 **E1-metrics** 之后）。  
 > **与 E6 分工**：G = **实验目标**（**实验模式** G1：追数 / 方法+数 / 摸底 + G2 可量化目标或护栏）；E6 = **探索方案**（在 G 已定前提下，每轮改什么、场景排期、KEEP 分池）。**须先 G 后 E6**。  
 > **与 O3 分工**：O3 = 该场景起步 **plain/reference 尺子**（测条件；找不到请用户给）；在 **G + E6 之后**问。起手改哪一类由 G1→`tier_start` 隐含。  
 > **迁后改法**：`/auto-nn-goal`（`mode` / `set` / `show` / `clear`）；常规迭代 Agent 勿手改 yaml。
@@ -1753,7 +1753,7 @@ python3 <template_root>/scripts/init_o3_abcde.py \
 | 确定 workflow + `target_root`（及 `source_root`） | `python3 scripts/append-init-qa-log.py init-header --workflow build\|migrate\|update --target-root … [--source-root …]`（PR2.5） |
 | P0 用户确认 | `append … --step 准备 --slug P0-project-brief …` |
 | 阶段 0 `migration-compare` 完成（migrate workflow） | `append … --step 0 --slug stage-0-compare …`（`lock` 附报告路径或 3 行摘要） |
-| **每一编号**用户确认后 | `append … --step <n> --total 27\|24\|15 --slug <slug> --theme <人话主题> --ask … --options … --user … --lock …` |
+| **每一编号**用户确认后 | `append … --step <n> --total 28\|25\|16 --slug <slug> --theme <人话主题> --ask … --options … --user … --lock …` |
 | 用户**改选**某编号 | 同 slug 再 `append` 一次（脚本自动 `rev=2`；不删旧条） |
 | F1 用户 **①** 签字 | **先** `close --user … --contradiction-fail 0`（内含 `F1-contract` 条 + `closed` 戳）；**再**覆盖 `migration-summary.md`；**再** `python3 scripts/init_answers.py export --repo-root <project_root>` 写 `.auto-nn/init-answers.yaml` |
 
@@ -1828,7 +1828,7 @@ Agent 汇总 F1-contract 后、请用户签字前，**必须**根据下表自检
 
 > **双层呈现**：本节【确认选项】①②③、【选后锁定】、F1-contract 表是 **agent 内部工作表**（规划落盘 + `init-qa-log.lock`）。**用户消息**只发 [`SKILL.md`](SKILL.md) **四段式**（含 mandatory「这一步在定什么」）+ A/B/C；**禁止**把六段工作表或 lock 表复制给用户。`append-init-qa-log --ask` = 用户看到的问句（人话）；`--lock` 可技术化。
 
-阶段 1（HARD-GATE）与用户的对话须遵守下列规则，**避免**一次贴出 H/D/I/E/T/O 全表或「27/24 项问卷」：
+阶段 1（HARD-GATE）与用户的对话须遵守下列规则，**避免**一次贴出 H/D/I/E/T/O 全表或「28/25 项问卷」：
 
 | 规则 | 要求 |
 |------|------|
@@ -1836,7 +1836,7 @@ Agent 汇总 F1-contract 后、请用户签字前，**必须**根据下表自检
 | **顺序固定** | 仍按 [确认流程](#确认流程) 第 2 步的顺序；不得跳号，不得并行抛出多项。 |
 | **单条六段** | 含 ①②③ 类选项时 agent **内部**须含【现状】/【模板默认】、**【现有清单】**、【为什么问】、【模板建议】、**【确认选项】**、**【选后锁定】表**（见 [确认选项可辨规范](#确认选项可辨规范)）；**对用户只发 SKILL 四段式**，禁止把六段或【选后锁定】表复制给用户。 |
 | **子表归属** | `D2-data-split` 划分表、`E4-train-eval` 内 E4_PATH/节奏等可在**该编号的一条消息内**用表格呈现，但仍算**一个编号**，不得与 `D3-workspace-data`、`E1` 等同条发出。 |
-| **F1-contract 时机** | 入口 A **27** 项 / 入口 B **24** 项**全部**经用户确认后，**单独一轮**输出 [阶段 F — F1-contract 汇总表](#阶段-f收尾finalize仅-f1-contract)（含 **F1-contract 允许** 字段 + [F1-contract 矛盾项检查](#f1-contract-矛盾项检查发出-f1-contract-前必跑有-fail-不得请用户-确认)）供签字；此前**禁止**预发完整 F1-contract。 |
+| **F1-contract 时机** | 入口 A **28** 项 / 入口 B **25** 项**全部**经用户确认后，**单独一轮**输出 [阶段 F — F1-contract 汇总表](#阶段-f收尾finalize仅-f1-contract)（含 **F1-contract 允许** 字段 + [F1-contract 矛盾项检查](#f1-contract-矛盾项检查发出-f1-contract-前必跑有-fail-不得请用户-确认)）供签字；此前**禁止**预发完整 F1-contract。 |
 | **快速路径** | 即使 `fast_path_eligible`，「仍须单独问」的项（H1-legacy-artifacts～H3-agent-boundary、D2-data-split、**I1-train-consumes～I2-official-path**（迁入源对齐）、**D4-repro-data**、**T2-callchain**、**E4-train-eval**、O1-time-budget～O4-repro-determinism 等）也须**逐编号**问，不可因快速路径合并成一张总表。 |
 | **阶段 0 例外** | `migration-compare` 的 Markdown 报告可整段贴出（只读分析，非 HARD-GATE 提问）。 |
 
@@ -1929,11 +1929,11 @@ agent 对用户发问前，从本表取 1 句（可改写，禁 slug/函数名�
 1. Agent 确定入口类型（A/B）；入口 A 完成阶段 0（`migration-compare` + 盘点表 v0）
 2. 发 **P0-project-brief**，用户 **P0=①**（或 ② 纠正至 ①）
 3. 遵守 [Agent 交互规范](#agent-交互规范cursor--claude-code-通用)（**每轮一问一编号**）
-4. 入口 A：**D1→D2 → I1→I2→I3 → D3→D4 → H1→H2→H3 → T1→T2 → E1 → G1→G2 → E2→…→E9 → O1→O2→O3→O4 → F1-contract**；入口 B：**D1→D2 → I1→I2→I3 → D3→D4 → T1→T2 → E1 → G1→G2 → E2→…→E9 → O1→O4 → F1-contract**（无 H）。带 `--answers` 时每步先查 `.auto-nn/init-answers.resolved.json`（见 [答案清单协议](#答案清单协议--answers)）
+4. 入口 A：**D1→D2→D2b → I1→I2→I3 → D3→D4 → H1→H2→H3 → T1→T2 → E1 → G1→G2 → E2→…→E9 → O1→O2→O3→O4 → F1-contract**；入口 B：**D1→D2→D2b → I1→I2→I3 → D3→D4 → T1→T2 → E1 → G1→G2 → E2→…→E9 → O1→O4 → F1-contract**（无 H）。带 `--answers` 时每步先查 `.auto-nn/init-answers.resolved.json`（见 [答案清单协议](#答案清单协议--answers)）
 5. 用户修改某项后，Agent 立即重新展示**该项编号**的确认（仍须满足 [确认选项可辨规范](#确认选项可辨规范)，不得夹带其它编号）
 6. 前后项有依赖时，Agent 自动重新推导后续提案
 7. 入口 A：现状已符合模板的项可标注"确认即可"；**T1/T2 即使确认即可也须附内容**（T1：loss 一句摘要；T2：**调用链 ≤6 行**）
-8. 入口 A **27** 项 / 入口 B **24** 项（**不含 P0**）全部确认后才可进入 **阶段 2（实现）**
+8. 入口 A **28** 项 / 入口 B **25** 项（**不含 P0**）全部确认后才可进入 **阶段 2（实现）**
 9. F1-contract 通过后 **必须**向用户发送 [F1-contract 通过后 — 强制回复模板](#f1-通过后--强制回复模板)（澄清 ≠ 完成）
 
 确认后、改代码前，Agent **必须**自检：
@@ -2210,7 +2210,7 @@ HARD-GATE 确认后，**代码编写应委派给 subagent**，主智能体负责
 - **Subagent（implementer）**：根据精确指令写单个文件（contract、workspace、train.py 等）
 
 **流程：**
-1. 主智能体完成阶段 1 HARD-GATE（入口 B 24 项 / 入口 A 27 项 / update 15 项）→ 发送 **F1-contract 通过后模板**
+1. 主智能体完成阶段 1 HARD-GATE（入口 B 25 项 / 入口 A 28 项 / update 16 项）→ 发送 **F1-contract 通过后模板**
 2. 主智能体为每个待写文件派发 subagent（阶段 2），prompt 含：
    - 确认过的 metrics/test/TSV/keep 具体值
    - 目标文件路径
@@ -2361,12 +2361,12 @@ bash <template_root>/scripts/migration-compare.sh \
 | 该题不在 `resolved`（未填 / 参考项 / 有错误） | 照常一问一答 |
 | 清单有错误（rc 1） | 全部照常一问一答；不得「部分生效」 |
 
-- **题序不变**：清单不改变 27/24 步顺序，也不合并题；依赖题（如 I1 依赖 D2）仍等前题确认后才套用。
+- **题序不变**：清单不改变 28/25 步顺序，也不合并题；依赖题（如 I1 依赖 D2b）仍等前题确认后才套用。
 - **进度抬头照发**：`第 N / 共 M`；跳卡的题也占一步。
 
 ### F1、记录与导出
 
-- `init-qa-log.md` 条目数与非清单路线一致（build 25 / migrate 28 / update 15）；来源只体现在 `--user` 文字。
+- `init-qa-log.md` 条目数与非清单路线一致（build 26 / migrate 29 / update 16）；来源只体现在 `--user` 文字。
 - F1-contract 汇总表每行末注 **来源：清单 / 现场 / 草稿猜测**；签字**永远现场**（F1 不可由清单代签）。
 - **close + 写 migration-summary 之后必跑**：`python3 scripts/init_answers.py export --repo-root <target>` → `.auto-nn/init-answers.yaml`（以 qa-log 每题最大 rev 为准）。下次 `--answers` 用这份，不用草稿、不用口径汇总 md。
 - 阶段 2 首步：`python3 scripts/init_info_perm.py write --repo-root . --from-resolved .auto-nn/init-answers.resolved.json`（清单含 I 题时）。
@@ -2385,7 +2385,7 @@ bash <template_root>/scripts/migration-compare.sh \
 
 ---
 
-## --fast 路线（in-tmux Claude 看项目答 27 步，**主推自动化路线**）
+## --fast 路线（in-tmux Claude 看项目答 28 步，**主推自动化路线**）
 
 ### 触发原则
 
@@ -2411,15 +2411,15 @@ bash <template_root>/scripts/migration-compare.sh \
 
 fast 路线**不破**协议层：
 
-- ✅ `init-qa-log.md` 必含 init-header + build:25 / migrate:28 / update:15 条 entries + F1-contract + close（PR2.5；2026-09 含 I1–I3）
-- ✅ `MIN_ENTRIES_BY_WORKFLOW={build:25, migrate:28, update:15}` 由 `validate()` 强制（不够数则警告，PR2.5）
+- ✅ `init-qa-log.md` 必含 init-header + build:26 / migrate:29 / update:16 条 entries + F1-contract + close（PR2.5；2026-09 含 I1–I3）
+- ✅ `MIN_ENTRIES_BY_WORKFLOW={build:26, migrate:29, update:16}` 由 `validate()` 强制（不够数则警告，PR2.5）
 - ✅ 写入主体必为 in-tmux Claude CLI（调 `scripts/append-init-qa-log.py`，cwd 在副本）
 - ✅ `append-init-qa-log.py` 只验产物（init-header / 条目数 / F1-contract 标题 / close 时间戳），**不验证触发方式**
 
 ### 入口 A/B slug 白名单（与「编号速查」一致）
 
-入口 B = 26 个 slug（含 F1-contract）：P0 + D1-D2 + I1-I3 + D3-D4 + T1-T2 + E1 + G1-G2 + E2-E9 + O1-O4 + F1
-入口 A 在此基础上加 3 个 H slug = 29 个。
+入口 B = 27 个 slug（含 F1-contract）：P0 + D1-D2-D2b + I1-I3 + D3-D4 + T1-T2 + E1 + G1-G2 + E2-E9 + O1-O4 + F1
+入口 A 在此基础上加 3 个 H slug = 30 个。
 
 `--fast` 可与 `--answers` 叠用：清单命中的题 in-tmux Claude 不再推断、直接取清单值（仍逐条 append，`--user` 带「（来自清单）」）；其余题照旧看项目答。
 
