@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.4.2] - 2026-10-14
 
+### Added
+
+- 立项在「数据划分」之后增加「数据维度含义」一问：迁入 28 步、从零 25 步、二次更新 16 步
+- 轴长度和轴名两边都有时必须一样多；交卷确认后的维度写进说明块
+
 ## [3.4.1] - 2026-10-14
 
 ### Fixed
