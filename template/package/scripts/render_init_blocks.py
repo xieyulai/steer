@@ -56,7 +56,7 @@ def _kv(lock: str, key: str) -> str:
 
 
 def _load_locks(resolved_path: Path) -> dict[str, str]:
-    """resolved.json → {slug: lock 文本}（freeform 题的 fields.lock）。"""
+    """resolved.json → {slug: lock 文本}（fields.lock，或条目顶层 lock）。"""
     return _load_resolved(resolved_path)[0]
 
 
@@ -67,9 +67,12 @@ def _load_resolved(resolved_path: Path) -> tuple[dict[str, str], dict[str, dict]
     locks: dict[str, str] = {}
     machine: dict[str, dict] = {}
     for slug, item in resolved.items():
-        fields = (item or {}).get("fields", {}) or {}
-        if fields.get("lock"):
-            locks[str(slug)] = str(fields["lock"])
+        item = item or {}
+        fields = item.get("fields", {}) or {}
+        # freeform 题把锁放在 fields.lock；choice/value 题的锁在条目顶层。
+        lock = fields.get("lock") or item.get("lock")
+        if lock:
+            locks[str(slug)] = str(lock)
         machine[str(slug)] = {k: v for k, v in fields.items() if k != "lock"}
     return locks, machine
 

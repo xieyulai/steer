@@ -125,6 +125,31 @@ def test_load_locks_reads_freeform_lock(tmp_path):
     assert _load_locks(p)["D2-data-split"].startswith("D2.SPLIT=")
 
 
+def test_load_locks_reads_toplevel_value_lock_into_readme(tmp_path):
+    """value 题的锁在条目顶层，不在 fields.lock。加载后须能渲染 README 块。"""
+    p = tmp_path / "resolved.json"
+    p.write_text(
+        json.dumps({
+            "resolved": {
+                "D2b-data-axes": {
+                    "fields": {"axes": [2, 32, 4, 8], "names": ["iq", "tx", "rx", "rb"]},
+                    "lock": "D2b.AXES=[2,32,4,8]; D2b.NAMES=[iq,tx,rx,rb]",
+                }
+            }
+        }, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    locks = _load_locks(p)
+    assert locks["D2b-data-axes"].startswith("D2b.AXES=")
+    readme = tmp_path / "README.md"
+    readme.write_text("# 项目\n", encoding="utf-8")
+    render_readme(tmp_path, locks)
+    text = readme.read_text(encoding="utf-8")
+    assert "<!-- D2B_DATA_AXES -->" in text
+    assert "AXES: 2,32,4,8" in text
+    assert "NAMES: iq,tx,rx,rb" in text
+
+
 def test_render_readme_fills_and_replaces_boundary(tmp_path):
     repo = _make_repo(tmp_path)
     notes = render_readme(repo, LOCKS)
