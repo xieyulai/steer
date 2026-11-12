@@ -793,6 +793,8 @@ def best_tsv_row(repo_root: Path, mk: str | None = None, direction: str | None =
     for row in tsv_rows(repo_root):
         if row.get("experiment") == "preflight_check":
             continue
+        if is_rehearsal_row(row):
+            continue
         v = _float_cell(row, mk)
         if v is None:
             continue

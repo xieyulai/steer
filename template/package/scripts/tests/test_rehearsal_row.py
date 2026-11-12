@@ -14,6 +14,7 @@ from lib.rehearsal_row import is_rehearsal_row  # noqa: E402
 from lib.run_ledger_summary import (  # noqa: E402
     _best_row_for_scenario,
     _plateau_streak_for_scenario,
+    best_tsv_row,
 )
 
 _TSV_HEADER = (
@@ -48,6 +49,20 @@ def test_best_row_skips_rehearsal_even_if_score_higher(tmp_path: Path):
         ],
     )
     row = _best_row_for_scenario(tmp_path, "default", "sgcs", "maximize")
+    assert row is not None
+    assert row["experiment"] == "formal"
+
+
+def test_best_tsv_row_skips_rehearsal_across_scenarios(tmp_path: Path):
+    """跨场景兜底也不认预演行，哪怕主指标被填成更高的数。"""
+    _write_tsv(
+        tmp_path,
+        [
+            "formal\tdefault\t0.80\t\tA-routine\t10",
+            "reh_other\tother\t0.99\t0.99\tE-rehearsal\t100",
+        ],
+    )
+    row = best_tsv_row(tmp_path, "sgcs", "maximize")
     assert row is not None
     assert row["experiment"] == "formal"
 
