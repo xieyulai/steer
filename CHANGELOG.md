@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-11-12
+
+### Added
+
+- feat: 改题卡写入类型与一行标题
+
 ## [4.0.0] - 2026-11-12
 
 ### Added
