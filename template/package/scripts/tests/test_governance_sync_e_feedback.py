@@ -10,12 +10,16 @@ def test_governance_sync_ships_e_feedback_and_exploration_stamp():
     text = _SYNC.read_text(encoding="utf-8")
     for rel in (
         "scripts/e_feedback.py",
+        "scripts/rehearse_e.py",
         "scripts/check_exploration_stamp.py",
         "scripts/lib/exploration_stamp.py",
         "scripts/lib/e_feedback_store.py",
+        "scripts/lib/rehearsal_row.py",
     ):
         assert rel in text
     assert 'cp "$TEMPLATE_PKG/scripts/e_feedback.py"' in text
+    assert 'cp "$TEMPLATE_PKG/scripts/rehearse_e.py"' in text
+    assert 'cp "$TEMPLATE_PKG/scripts/lib/rehearsal_row.py"' in text
     assert 'cp "$TEMPLATE_PKG/scripts/check_exploration_stamp.py"' in text
     assert 'cp "$TEMPLATE_PKG/scripts/lib/exploration_stamp.py"' in text
     assert 'cp "$TEMPLATE_PKG/scripts/lib/e_feedback_store.py"' in text

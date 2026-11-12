@@ -186,6 +186,7 @@ REQUIRED_SCRIPTS: tuple[str, ...] = (
     "nn-doctor.sh",
     "prune-runs.py",
     "regen_results_tsv.py",
+    "rehearse_e.py",
     "sync_exploration_ledger.py",
     "clear-runs.sh",
     "clear_inspect.py",

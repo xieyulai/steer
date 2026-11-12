@@ -66,7 +66,7 @@ if [[ ! -f "$TEMPLATE_ROOT/.template-maintainer" ]]; then
   echo "[governance-sync] 警告: --template-root 似非模板维护仓根（无 .template-maintainer）" >&2
 fi
 
-for need in .gitignore profiles.yaml experiment.py auto-nn-run.sh scripts/auto-nn-setup.py CLAUDE.md PROTOCOL.md reflect.py contract/__main__.py scripts/verify-migration-complete.sh scripts/verify_project_layout.py scripts/regen_results_tsv.py scripts/sync_exploration_ledger.py scripts/sync_ledger.py scripts/rl_workspace_gate.py scripts/d2_data_split_gate.py scripts/scenario_policy_gate.py scripts/info_perm_gate.py scripts/lib/info_perm.py scripts/lib/home_gpus.py scripts/readme-modify-gate.sh scripts/modify-post-change.sh scripts/readme_consistency_gate.py scripts/smoke-check.sh scripts/check-env.sh scripts/wait-train.sh scripts/claude_stream_summarize.py scripts/claude_stream_result_watchdog.py scripts/auto-run-batch-tail.sh scripts/refresh-human-guidance-baseline.sh scripts/analyze_hardcoded_params.py scripts/human_guidance_gate.py scripts/manual-run-scope-check.sh scripts/repair_keeper.py scripts/check_innovation_vocab.py scripts/check_exploration_stamp.py scripts/e_feedback.py scripts/lib/exploration_stamp.py scripts/lib/e_feedback_store.py scripts/lib/governance-rev.sh scripts/lib/nn-state.sh scripts/lib/scenario_inventory.py scripts/lib/experiment_mode.py scripts/lib/migrate_agent_keys.py scripts/migrate_to_exploration_mode.py scripts/lib/nn_config.py scripts/lib/presets.py scripts/lib/train_branch.py scripts/lib/train_branch_types.py scripts/lib/adapter_accept.py scripts/lib/framework_binding.py scripts/lib/smoke_metrics_gate.py scripts/lib/auto_mode.py scripts/lib/check_env_import_classify.py scripts/lib/migrate_finalize_run_kwargs.py scripts/lib/baseline_anchors_status.py scripts/view_runs.py scripts/check_brief.py scripts/check_goal.py scripts/check_metric_floor.py scripts/scan_no_fallback.py; do
+for need in .gitignore profiles.yaml experiment.py auto-nn-run.sh scripts/auto-nn-setup.py CLAUDE.md PROTOCOL.md reflect.py contract/__main__.py scripts/verify-migration-complete.sh scripts/verify_project_layout.py scripts/regen_results_tsv.py scripts/sync_exploration_ledger.py scripts/sync_ledger.py scripts/rl_workspace_gate.py scripts/d2_data_split_gate.py scripts/scenario_policy_gate.py scripts/info_perm_gate.py scripts/lib/info_perm.py scripts/lib/home_gpus.py scripts/readme-modify-gate.sh scripts/modify-post-change.sh scripts/readme_consistency_gate.py scripts/smoke-check.sh scripts/check-env.sh scripts/wait-train.sh scripts/claude_stream_summarize.py scripts/claude_stream_result_watchdog.py scripts/auto-run-batch-tail.sh scripts/refresh-human-guidance-baseline.sh scripts/analyze_hardcoded_params.py scripts/human_guidance_gate.py scripts/manual-run-scope-check.sh scripts/repair_keeper.py scripts/check_innovation_vocab.py scripts/check_exploration_stamp.py scripts/e_feedback.py scripts/rehearse_e.py scripts/lib/exploration_stamp.py scripts/lib/e_feedback_store.py scripts/lib/rehearsal_row.py scripts/lib/governance-rev.sh scripts/lib/nn-state.sh scripts/lib/scenario_inventory.py scripts/lib/experiment_mode.py scripts/lib/migrate_agent_keys.py scripts/migrate_to_exploration_mode.py scripts/lib/nn_config.py scripts/lib/presets.py scripts/lib/train_branch.py scripts/lib/train_branch_types.py scripts/lib/adapter_accept.py scripts/lib/framework_binding.py scripts/lib/smoke_metrics_gate.py scripts/lib/auto_mode.py scripts/lib/check_env_import_classify.py scripts/lib/migrate_finalize_run_kwargs.py scripts/lib/baseline_anchors_status.py scripts/view_runs.py scripts/check_brief.py scripts/check_goal.py scripts/check_metric_floor.py scripts/scan_no_fallback.py; do
   [[ -f "$TEMPLATE_PKG/$need" ]] || { echo "[governance-sync] FAIL: 模板包缺少 $need（TEMPLATE_PKG=$TEMPLATE_PKG）" >&2; exit 1; }
 done
 
@@ -232,6 +232,8 @@ cp "$TEMPLATE_PKG/scripts/check_exploration_stamp.py" "$PROJECT_ROOT/scripts/che
 chmod +x "$PROJECT_ROOT/scripts/check_exploration_stamp.py" 2>/dev/null || true
 cp "$TEMPLATE_PKG/scripts/e_feedback.py" "$PROJECT_ROOT/scripts/e_feedback.py"
 chmod +x "$PROJECT_ROOT/scripts/e_feedback.py" 2>/dev/null || true
+cp "$TEMPLATE_PKG/scripts/rehearse_e.py" "$PROJECT_ROOT/scripts/rehearse_e.py"
+chmod +x "$PROJECT_ROOT/scripts/rehearse_e.py" 2>/dev/null || true
 
 if [[ -f "$TEMPLATE_PKG/scripts/auto-nn-update.sh" ]]; then
   cp "$TEMPLATE_PKG/scripts/auto-nn-update.sh" "$PROJECT_ROOT/scripts/auto-nn-update.sh"
@@ -564,6 +566,7 @@ if [[ -f "$TEMPLATE_PKG/scripts/lib/innovation_fingerprint.py" ]]; then
 fi
 cp "$TEMPLATE_PKG/scripts/lib/exploration_stamp.py" "$PROJECT_ROOT/scripts/lib/exploration_stamp.py"
 cp "$TEMPLATE_PKG/scripts/lib/e_feedback_store.py" "$PROJECT_ROOT/scripts/lib/e_feedback_store.py"
+cp "$TEMPLATE_PKG/scripts/lib/rehearsal_row.py" "$PROJECT_ROOT/scripts/lib/rehearsal_row.py"
 if [[ -f "$TEMPLATE_PKG/scripts/lib/innovation_catalog.yaml" ]]; then
   cp "$TEMPLATE_PKG/scripts/lib/innovation_catalog.yaml" "$PROJECT_ROOT/scripts/lib/innovation_catalog.yaml"
 fi
