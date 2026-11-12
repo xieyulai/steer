@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-11-13
+
+### Fixed
+
+- Ledger TSV column order is now deterministic. `_LEDGER_OVERLAY_KEYS` was a `frozenset`, so the overlay columns were appended in a hash-seed dependent order and `verify` / `nn-doctor` could report a freshly regenerated `tsv_header` as broken. The keys are an ordered tuple now.
+- `nn-doctor.sh` collects every FAIL before it reports. Under `set -e` the first non-zero check aborted the whole script, so the summary line (PASS/WARN/FAIL) was never printed and the caller only saw a non-zero exit code. All check invocations go through `check_call`, and an exit trap prints a summary on every exit path.
+- `auto-nn-update.sh` no longer aborts when `verify-migration-complete.sh` fails. The doctor still runs so all failures are collected, and a missing doctor script is reported explicitly as "doctor did not run". The update still exits non-zero when either step fails.
+- The E-card backfill commit script (`tools/e-card-backfill/commit_card.sh`) stages only the ledger file, refuses to commit when the index holds anything else, and writes the real decision paths (including `.part1` / `.part2`) into the commit message instead of a hardcoded `decisions/<repo>.json`.
+
 ## [4.1.0] - 2026-11-12
 
 ### Added
