@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-11-12
+
+### Added
+
+- feat: 隔离副本预演改题并写回改题卡与成绩表
+- feat: 改题卡记下预演结果且同一主张只记一次
+- feat: 成绩表允许 E-rehearsal 这一格
+- feat: 正式成绩计算跳过改题预演行
+
+### Fixed
+
+- fix: 跨场景最高分也跳过改题预演行
+
 ## [3.4.2] - 2026-10-14
 
 ### Added
