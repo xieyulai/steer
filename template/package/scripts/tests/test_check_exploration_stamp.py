@@ -84,6 +84,21 @@ def test_e_prefix_fail():
     assert any(i.severity == "FAIL" and "E-" in i.message for i in issues)
 
 
+def test_e_rehearsal_trained_ok():
+    issues = check_tsv_rows(
+        [
+            {
+                "experiment": "reh1",
+                "elapsed_sec": "10",
+                "exploration_space": "E-rehearsal",
+                "timestamp": "2026-08-29T00:00:00+00:00",
+            }
+        ],
+        since=date(2026, 8, 1),
+    )
+    assert not any(i.severity == "FAIL" and "E-" in i.message for i in issues)
+
+
 def test_empty_untrained_ok():
     issues = check_tsv_rows(
         [

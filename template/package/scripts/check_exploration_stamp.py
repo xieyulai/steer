@@ -26,6 +26,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+from lib.rehearsal_row import REHEARSAL_CELL
+
 CELL_RE = re.compile(r"^[ABCD]-(routine|derived|different|novel)$")
 UNTRAINED_ELAPSED = 1.0
 
@@ -85,6 +87,8 @@ def check_tsv_rows(
         exp = (row.get("experiment") or "").strip() or f"L{i}"
         elapsed = parse_elapsed(row)
 
+        if cell == REHEARSAL_CELL:
+            continue
         if "E-" in cell:
             issues.append(Issue("FAIL", f"L{i} {exp}: exploration_space 含 E- ({cell!r})"))
             continue
