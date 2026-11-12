@@ -1,8 +1,11 @@
-"""台账表头列序必须确定（模板 4.1.1 修：overlay 键曾是 frozenset）。
+"""The ledger TSV header column order must be deterministic (template 4.1.1 fix:
+the overlay keys used to be a frozenset).
 
-背景：``_LEDGER_OVERLAY_KEYS`` 原为 frozenset ⇒ 迭代序随进程 PYTHONHASHSEED 变
-⇒ ``_effective_ledger_context_keys()`` 补列顺序随机 ⇒ ``_default_tsv_columns()``
-两次运行出两种表头 ⇒ verify/doctor 的 tsv_header 检查「刚 regen 完也可能 FAIL」。
+Background: ``_LEDGER_OVERLAY_KEYS`` was a frozenset ⇒ its iteration order varies
+with the process' PYTHONHASHSEED ⇒ the extra columns appended by
+``_effective_ledger_context_keys()`` come out in a random order ⇒
+``_default_tsv_columns()`` produces two different headers across two runs ⇒
+the tsv_header check in verify/doctor "may FAIL right after a regen".
 """
 from __future__ import annotations
 
@@ -46,7 +49,8 @@ def _columns_in_subprocess(hashseed: str, cwd: Path) -> str:
 
 
 def test_overlay_keys_are_ordered_tuple():
-    """overlay 键须写成有序元组（写成集合就恢复不了列序）。"""
+    """The overlay keys must be an ordered tuple (written as a set the column order
+    could never be restored)."""
     assert isinstance(_LEDGER_OVERLAY_KEYS, tuple)
     assert list(_LEDGER_OVERLAY_KEYS) == [
         "exploration_space",
@@ -56,16 +60,19 @@ def test_overlay_keys_are_ordered_tuple():
 
 
 def test_tsv_header_stable_across_hashseeds(tmp_path):
-    """不同 PYTHONHASHSEED 的进程，表头必须逐列相同。
+    """Processes with different PYTHONHASHSEED values must produce a column-for-column
+    identical header.
 
-    seed 取 1/3/4：这三个 seed 下 str 集合的迭代序确实不同（seed 1 与 2 恰好相同，
-    只比 1/2 会漏掉回归）。曾用集合实现时，本用例必红。
+    The seeds are 1/3/4: under these three seeds the iteration order of a set of
+    strings really does differ (seeds 1 and 2 happen to be identical, so comparing
+    only 1/2 would miss the regression). With the old set-based implementation this
+    case was guaranteed to fail.
     """
     columns = {seed: _columns_in_subprocess(seed, tmp_path) for seed in ("1", "3", "4")}
     assert len(set(columns.values())) == 1, columns
     cols = columns["1"].split("\t")
     assert cols[:2] == ["experiment", "scenario_id"]
-    # overlay 三列按固定序紧跟在 baseline_tag / exploration_space 之后
+    # The three overlay columns follow baseline_tag / exploration_space in a fixed order
     assert cols.index("baseline_tag") < cols.index("exploration_space")
     assert cols.index("exploration_space") < cols.index("untrained")
     assert cols.index("untrained") < cols.index("rehearsal_score")

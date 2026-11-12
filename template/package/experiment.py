@@ -1202,10 +1202,13 @@ def resolve_cfg_for_ledger_key(cfg: dict[str, Any], key: str) -> Any | None:
     return None
 
 
-# 台账观察列：finalize 由 exploration_stamp 写入；不从 cfg 取值
-# 有序元组，勿改回集合：_effective_ledger_context_keys() 按本序补进表头，
-# 集合的迭代序随进程 PYTHONHASHSEED 变 ⇒ 同一份代码两次 regen 出两种表头，
-# verify/doctor 的 tsv_header 检查「刚 regen 完也可能 FAIL」（间歇性 flaky）。
+# Ledger observation column: finalize writes it from exploration_stamp; it is not
+# read from cfg.
+# Ordered tuple — do not turn it back into a set: _effective_ledger_context_keys()
+# appends these keys to the TSV header in this order; a set's iteration order varies
+# with the process PYTHONHASHSEED ⇒ the same code produced two different headers
+# across two regen runs, so verify/doctor's tsv_header check "could FAIL right after
+# a fresh regen" (intermittent flaky failure).
 _LEDGER_OVERLAY_KEYS = ("exploration_space", "untrained", "rehearsal_score")
 
 

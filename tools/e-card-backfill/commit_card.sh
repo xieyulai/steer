@@ -1,20 +1,28 @@
 #!/usr/bin/env bash
-# commit_card.sh — 把某个业务仓的 E 卡台账（人工判定回填）单独提交一笔
+# commit_card.sh — commit the E-card ledger backfill (manual adjudication) of one
+# business repo as a single commit.
 #
-# 用法:
-#   bash commit_card.sh <仓名> [判定文件...]
-#   判定文件省略时，按实际存在的 decisions/<仓名>.json 与 decisions/<仓名>.partN.json 推断。
+# Usage:
+#   bash commit_card.sh <repo> [decision-file...]
+#   When the decision files are omitted, they are inferred from the decision files
+#   that actually exist: decisions/<repo>.json and decisions/<repo>.partN.json.
 #
-# 模板 4.1.1 修 ③（太史慈判定：三处都是模板尺子的错）：
-#   1. 只 stage 本次回填的目标文件（_runs/analysis/e_feedback.jsonl），
-#      **禁止整工作区 git add**；提交前再核一遍暂存区只含这一个文件，
-#      有多余文件就中止不提交（防止夹带业务卡/别人的 WIP）。
-#   2. commit message 里的判定依据按**实际存在的判定文件**写，
-#      一个仓可能拆成 <仓名>.part1.json / <仓名>.part2.json 多个分片，
-#      不再硬编码 decisions/<仓名>.json（那个仓根本没这个文件 ⇒ 依据路径是假的）。
+# Template 4.1.1 fix ③ (Taishici adjudication: all three are bugs in the template's
+# own measuring tools):
+#   1. Stage ONLY the target file of this backfill (_runs/analysis/e_feedback.jsonl),
+#      **never `git add` the whole working tree**; before committing, re-check the
+#      index to make sure it holds only this one file, and abort without committing
+#      if anything else is staged (prevents smuggling in business cards / other
+#      people's WIP).
+#   2. The decision basis in the commit message is written from the **decision files
+#      that actually exist**; one repo may be split into several shards such as
+#      <repo>.part1.json / <repo>.part2.json, and the hardcoded
+#      decisions/<repo>.json is no longer used (that repo has no such file at all
+#      ⇒ the basis path would be fake).
 #
-# 单一事实源：本文件随 steer 模板仓一起版本化；
-# 运维副本 AUTO_RESEARCH/e-card-backfill/commit_card.sh 是指向本文件的符号链接。
+# Single source of truth: this file is versioned together with the steer template
+# repo; the operational copy AUTO_RESEARCH/e-card-backfill/commit_card.sh is a
+# symlink pointing to this file.
 set -uo pipefail
 
 BASE="${NNF_BASE:-/data/xieyl/xie_workspace/AUTO_RESEARCH}"
@@ -36,7 +44,7 @@ if [[ ! -d "$ROOT" ]]; then
 fi
 cd "$ROOT" || exit 2
 
-# ── 判定依据文件清单（按实际存在的文件写，不硬编码）────────────────────────
+# ── List of decision-basis files (written from the files that actually exist, not hardcoded) ──
 DEC_LIST=""
 _add_dec() {
   local rel="$1"
@@ -48,7 +56,7 @@ _add_dec() {
 }
 
 if [[ $# -gt 0 ]]; then
-  # 调用方显式给了判定文件（apply_all.sh 有权威映射）
+  # The caller supplied the decision files explicitly (apply_all.sh has the authoritative mapping)
   for f in "$@"; do
     if [[ -f "$f" ]]; then
       _add_dec "$f"
@@ -66,14 +74,14 @@ if [[ -z "$DEC_LIST" ]]; then
   DEC_LIST="（未找到判定文件：AUTO_RESEARCH/e-card-backfill/decisions/${REPO}[.partN].json）"
 fi
 
-# ── 只 stage 本次回填目标文件 ─────────────────────────────────────────────
+# ── Stage only this backfill's target file ─────────────────────────────
 git add -- "$LEDGER" || { echo "git add 失败: $REPO" >&2; exit 1; }
 if git diff --cached --quiet -- "$LEDGER"; then
   echo "无改动，无需提交: $REPO"
   exit 0
 fi
 
-# 双保险：暂存区里除台账外不允许有别的文件
+# Belt and braces: no file other than the ledger may be in the index
 EXTRA="$(git diff --cached --name-only | grep -v -x -F "$LEDGER" || true)"
 if [[ -n "$EXTRA" ]]; then
   echo "暂存区含非本次回填文件，已中止（未提交）:" >&2

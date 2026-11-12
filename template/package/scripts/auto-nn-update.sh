@@ -186,8 +186,12 @@ _hard_gates "$_PROJECT_ROOT" "$TEMPLATE_ROOT" || exit 1
 if [[ "$SKIP_VERIFY" -eq 0 ]]; then
   echo "[auto-nn-update] verify-migration-complete.sh"
   _VERIFY_RC=0
-  # 模板 4.1.1 修 ②：verify 失败不再让 set -e 整脚本中止 ⇒ doctor 仍能跑到，
-  # 把 FAIL 收齐再统一判退出码（原行为：verify 一挂 doctor 静默不跑、无任何记录）。
+  # Template 4.1.1 fix ②: a failing verify-migration-complete.sh no longer aborts
+  # the whole script under set -e ⇒ nn-doctor.sh still runs, so every FAIL is
+  # collected first and the exit code is decided afterwards (old behaviour: one
+  # failing verify made doctor silently not run, with no record at all).
+  # If scripts/nn-doctor.sh is missing, that is reported explicitly as
+  # "doctor did not run" instead of being skipped silently.
   (cd "$_PROJECT_ROOT" && bash scripts/verify-migration-complete.sh) || _VERIFY_RC=$?
   if [[ $_VERIFY_RC -ne 0 ]]; then
     echo "[auto-nn-update] WARN: verify-migration-complete.sh 非 0 退出 (rc=${_VERIFY_RC})，继续跑 nn-doctor 以收齐 FAIL" >&2
@@ -198,9 +202,11 @@ if [[ "$SKIP_VERIFY" -eq 0 ]]; then
     echo "[auto-nn-update] WARN: 缺 scripts/nn-doctor.sh — doctor 未跑" >&2
     _DOCTOR_RC=1
   else
-    # governance-sync 刚覆盖治理文件（CLAUDE/PROTOCOL/auto-nn-run.sh）= 显式治理升级，
-    # 自带 NN_RELAUNCH=1 ack；与 experiment.py:1589「governance-sync 后首训」同义。
-    # 不削弱护栏：偷改（非 update 路径）仍被 manual-run-scope-check A+B+C 拦。
+    # governance-sync just overwrote the governance files (CLAUDE/PROTOCOL/auto-nn-run.sh)
+    # = an explicit governance upgrade, which carries its own NN_RELAUNCH=1 acknowledgement;
+    # same meaning as experiment.py:1589 ("first training after governance-sync").
+    # The guard is not weakened: sneaking a change in outside the update path is still
+    # blocked by the manual-run-scope-check A+B+C checks.
     (cd "$_PROJECT_ROOT" && NN_RELAUNCH=1 bash scripts/nn-doctor.sh) || _DOCTOR_RC=$?
   fi
   if [[ $_VERIFY_RC -ne 0 || $_DOCTOR_RC -ne 0 ]]; then

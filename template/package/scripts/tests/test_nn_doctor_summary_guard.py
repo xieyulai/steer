@@ -1,15 +1,22 @@
-"""nn-doctor.sh 必须「收齐 FAIL 再汇总退出码」（模板 4.1.1 修 ②）。
+"""nn-doctor.sh must "collect every FAIL, then print a summary and an exit code"
+(template 4.1.1 fix ②).
 
-背景（真实缺陷，非假设）：
-`set -euo pipefail` 下裸调用检查函数，函数内第一个 ``return 1`` 会让整脚本
-**静默退出**——汇总行（PASS/WARN/FAIL）永远打不出来，调用方只看到一个非零退出码，
-既不知道跑了多少项、也不知道漏跑了哪些。
-旧版复现（见本文件 test_old_version_reproduces_abort 的注释）：
-``ledger_watchlist`` 判 FAIL → return 1 → 脚本在第 9 行就停住，无汇总。
+Background (a real defect, not a hypothesis):
+under `set -euo pipefail`, calling a check function bare means the first
+``return 1`` inside the function makes the whole script **exit silently** — the
+summary lines (PASS/WARN/FAIL) can never be printed, and the caller only sees a
+non-zero exit code, with no way to know how many checks ran or which ones were
+skipped.
+Reproduction on the old version (see the comment on
+test_old_version_reproduces_abort in this file):
+``ledger_watchlist`` is judged FAIL → return 1 → the script stops at line 9, with
+no summary.
 
-修法：
-1. 检查调用统一走 ``check_call``（用 if 条件上下文调，bash 只在条件上下文忽略 -e）；
-2. 装 EXIT 兜底 trap，任何退出路径都打出汇总。
+Fix:
+1. all check invocations go through ``check_call`` (called in an `if` condition
+   context, where bash ignores -e);
+2. an EXIT trap is installed as a fallback so the summary is printed on every
+   exit path.
 """
 from __future__ import annotations
 
@@ -26,7 +33,8 @@ AUTO_UPDATE = SCRIPTS / "auto-nn-update.sh"
 
 
 def _build_fixture(tmp_path: Path) -> Path:
-    """造一个最小业务仓：故意让 ledger.watchlist 非法 ⇒ check_ledger_watchlist 返回 1。"""
+    """Build a minimal business repo: deliberately make ledger.watchlist invalid
+    ⇒ check_ledger_watchlist returns 1."""
     repo = tmp_path / "repo"
     (repo / "scripts" / "lib").mkdir(parents=True)
     shutil.copy2(DOCTOR, repo / "scripts" / "nn-doctor.sh")
@@ -48,35 +56,40 @@ def _run_doctor(repo: Path) -> subprocess.CompletedProcess:
 
 
 def test_doctor_emits_summary_even_when_a_check_fails(tmp_path):
-    """检查项 FAIL 时：仍要跑到末尾并打出汇总 + 结论，退出码 1。"""
+    """When a check FAILs: it must still run to the end and print the summary +
+    conclusion, with exit code 1."""
     repo = _build_fixture(tmp_path)
     proc = _run_doctor(repo)
     out = proc.stdout + proc.stderr
 
     assert "[nn-doctor] 汇总:" in out, out
     assert "[nn-doctor] 结论:" in out, out
-    # 失败项本身要留下痕迹
+    # The failing check itself must leave a trace
     assert "ledger_watchlist" in out and "FAIL" in out, out
-    # 退出码仍是 1（有 FAIL 不能放行）
+    # The exit code is still 1 (a FAIL must not let the run pass)
     assert proc.returncode == 1, out
 
 
 def test_doctor_does_not_stop_at_first_failing_check(tmp_path):
-    """第一个 FAIL 之后，后面的检查仍要跑（否则「收齐 FAIL」无从谈起）。"""
+    """After the first FAIL, the later checks must still run (otherwise "collect
+    every FAIL" is meaningless)."""
     repo = _build_fixture(tmp_path)
     proc = _run_doctor(repo)
     out = proc.stdout + proc.stderr
 
     assert "ledger_watchlist" in out
-    # shell_syntax / global_skills 位于 ledger_watchlist 之后的段位，跑到了就说明没提前退出
+    # shell_syntax / global_skills are in the sections after ledger_watchlist; if they
+    # ran, the script did not exit early
     assert "shell_syntax" in out, out
     assert "global_skills" in out, out
-    # 行数远超旧版（旧版在 ledger_watchlist 后即停，约 9 行）
+    # The line count far exceeds the old version (the old one stopped right after
+    # ledger_watchlist, at about 9 lines)
     assert len([ln for ln in out.splitlines() if ln.startswith("[nn-doctor]")]) >= 15, out
 
 
 def test_summary_counter_counts_match_rows(tmp_path):
-    """汇总里的 PASS/WARN/FAIL 计数应与实际行数一致（兜底 trap 打的汇总也算）。"""
+    """The PASS/WARN/FAIL counts in the summary should match the actual number of
+    rows (the summary printed by the fallback trap counts too)."""
     import re
 
     repo = _build_fixture(tmp_path)
@@ -86,14 +99,16 @@ def test_summary_counter_counts_match_rows(tmp_path):
     assert m, out
     p, w, f = (int(x) for x in m.groups())
     assert p + w + f > 0
-    # FAIL 计数至少为 1（本 fixture 必红）
+    # The FAIL count is at least 1 (this fixture is guaranteed to be red)
     assert f >= 1
 
 
 def test_no_bare_check_invocation_left():
-    """所有顶层检查调用都必须包在 check_call 里（防止回归成裸调用）。"""
+    """All top-level check invocations must be wrapped in check_call (to prevent a
+    regression back to bare calls)."""
     text = DOCTOR.read_text(encoding="utf-8")
-    # 只看「顶层裸调用」：整行就是 check_xxx，且不是函数定义、不是 check_call 调用
+    # Only look at "top-level bare calls": the whole line is check_xxx, and it is
+    # neither a function definition nor a check_call invocation
     offenders = []
     for ln in text.splitlines():
         s = ln.strip()
@@ -101,7 +116,7 @@ def test_no_bare_check_invocation_left():
             continue
         if s.startswith("check_call "):
             continue
-        if "() {" in s:  # 函数定义
+        if "() {" in s:  # function definition
             continue
         offenders.append(s)
     assert not offenders, offenders
@@ -111,7 +126,8 @@ def test_no_bare_check_invocation_left():
 
 
 def test_auto_nn_update_runs_doctor_even_when_verify_fails():
-    """auto-nn-update：verify 挂了也要让 doctor 跑到（太史慈 ② 后半句）。"""
+    """auto-nn-update: even if verify fails, doctor must still be run (Taishici ②,
+    second half)."""
     text = AUTO_UPDATE.read_text(encoding="utf-8")
     assert "|| _VERIFY_RC=$?" in text, "verify 必须捕获退出码而不是让 set -e 中止"
     assert "NN_RELAUNCH=1 bash scripts/nn-doctor.sh) || _DOCTOR_RC=$?" in text, (

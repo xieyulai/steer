@@ -74,17 +74,22 @@ run_check() {
   fi
 }
 
-# ── 受保护的检查调用（模板 4.1.1 修 ②）────────────────────────────
-# set -e 下裸调用检查函数时，函数内第一个 return 1 会让整脚本**静默退出**，
-# 汇总行（PASS/WARN/FAIL）永远打不出来 ⇒ 调用方看不到任何结论。
-# 统一用 check_call 包一层：函数体内临时关闭 errexit ⇒ 非零返回不再中断脚本；
-# 函数自己会 row 记 PASS/WARN/FAIL；若非零退出却没记行，补记一条 FAIL，
-# 保证「收齐 FAIL 再汇总退出码」。
+# ── Protected check invocation (template 4.1.1 fix ②) ───────────────────
+# Under `set -e`, calling a check function bare makes the function's first
+# `return 1` abort the **whole script silently**, so the summary line
+# (PASS/WARN/FAIL) is never printed ⇒ the caller sees no conclusion at all.
+# Always wrap the call in check_call: errexit is temporarily disabled inside
+# the function body ⇒ a non-zero return no longer interrupts the script.
+# The function itself records a PASS/WARN/FAIL row; if it exits non-zero
+# without recording a row, an extra FAIL row is added, to guarantee
+# "collect every FAIL first, then summarise and decide the exit code".
 check_call() {
   local _rc=0 _f0="$FAIL"
-  # 用 if 条件调用（不是 set +e）：bash 只在「条件上下文」里忽略 -e，
-  # 函数体内部即使自己 set -e 再 return 1，也不会把整脚本带走。
-  # （set +e 不够：函数体内 set -e 会把全局选项改回 on，随后 return 1 依旧中止脚本。）
+  # Invoke it in a condition context via `if` (not `set +e`): bash only ignores
+  # -e in a "condition context", so even if the function body turns `set -e`
+  # back on and then returns 1, it will not take the whole script down.
+  # (`set +e` is not enough: a `set -e` inside the function body turns the
+  # global option back on, and the subsequent `return 1` still aborts the script.)
   if "$@"; then
     _rc=0
   else
@@ -96,7 +101,8 @@ check_call() {
   return 0
 }
 
-# ── 汇总兜底（模板 4.1.1 修 ②）：任何退出路径都要打出汇总 ──────────
+# ── Summary fallback (template 4.1.1 fix ②): every exit path must print
+#    the summary ───────────────────────────────────────────────────────────
 _SUMMARY_EMITTED=0
 _emit_summary() {
   if [[ $_SUMMARY_EMITTED -eq 1 ]]; then
