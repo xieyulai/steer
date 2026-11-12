@@ -1203,7 +1203,7 @@ def resolve_cfg_for_ledger_key(cfg: dict[str, Any], key: str) -> Any | None:
 
 
 # 台账观察列：finalize 由 exploration_stamp 写入；不从 cfg 取值
-_LEDGER_OVERLAY_KEYS = frozenset({"exploration_space", "untrained"})
+_LEDGER_OVERLAY_KEYS = frozenset({"exploration_space", "untrained", "rehearsal_score"})
 
 
 def _extract_ledger_context(contract: Any, cfg: dict[str, Any] | None) -> dict[str, Any]:
@@ -1501,8 +1501,12 @@ def _float_metric(row: dict[str, str], key: str) -> float | None:
 def _history_best_metric(
     history: list[dict[str, str]], metric_key: str, direction: str,
 ) -> float | None:
+    from lib.rehearsal_row import is_rehearsal_row
+
     vals: list[float] = []
     for row in history:
+        if is_rehearsal_row(row):
+            continue
         v = _float_metric(row, metric_key)
         if v is not None and not math.isnan(v):
             vals.append(v)

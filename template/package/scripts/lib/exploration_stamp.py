@@ -26,6 +26,7 @@ from lib.innovation_fingerprint import (
     compute_fingerprint_from_configs,
     load_innovation_catalog,
 )
+from lib.rehearsal_row import is_rehearsal_row
 from lib.reflect_evidence import diff_code_snapshots
 from lib.tier_attestation import (
     classify_path_tiers,
@@ -64,6 +65,8 @@ def is_trained_row(
     旧表无该列时列空，仍只靠 elapsed / smoke 列（与历史行为一致）。
     """
     del metric_key  # 主指标不参与有效性门禁（评测打 0 / 缺失仍保留）
+    if is_rehearsal_row(row):
+        return False
     if smoke:
         return False
     raw_untrained = str(row.get("untrained") or "").strip().lower()

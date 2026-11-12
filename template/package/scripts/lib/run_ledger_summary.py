@@ -12,6 +12,7 @@ from typing import Any
 
 from lib.human_guidance_roadmap import RoadmapPhase, list_roadmap_phases
 from lib.nn_config import load_nn_config
+from lib.rehearsal_row import is_rehearsal_row
 
 
 def _read_text(path: Path) -> str:
@@ -867,6 +868,8 @@ def _best_row_for_scenario(
     best_row: dict[str, str] | None = None
     best_v: float | None = None
     for row in _tsv_rows_for_scenario(repo_root, scenario_id):
+        if is_rehearsal_row(row):
+            continue
         v = _float_cell(row, mk)
         if v is None:
             continue
@@ -890,6 +893,7 @@ def _plateau_streak_for_scenario(
     from lib.metric_analysis import metric_direction_for_column, plateau_streak_from_vals  # noqa: WPS433
 
     rows = _tsv_rows_for_scenario(repo_root, scenario_id)
+    rows = [r for r in rows if not is_rehearsal_row(r)]
     if len(rows) < 2:
         return 0
     metric = mk or metric_key(repo_root)
