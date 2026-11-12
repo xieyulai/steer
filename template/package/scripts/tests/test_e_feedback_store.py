@@ -7,14 +7,18 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 PKG = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PKG / "scripts"))
 
 from lib.e_feedback_store import (  # noqa: E402
     append_event,
+    attach_rehearsal,
     contract_changed,
     contract_file_map,
     format_shout_resolution_hint,
+    load_records,
     pending_count,
     resolve,
     shout_fields_from_reflect_payload,
@@ -359,3 +363,69 @@ def test_try_append_executed_requires_relaunch_and_diff(tmp_path: Path):
     assert rec["why_abcd_insufficient"] == "relaunch"
     assert rec["ask"] == "already"
     assert rec["source"] == "reflect"
+
+
+def test_attach_rehearsal_once(tmp_path: Path):
+    rec = attach_rehearsal(tmp_path, proposed="改官方测试", rehearsal={"status": "ok", "metric": 0.9})
+    assert rec["resolution"]["status"] == "pending"
+    assert rec["rehearsal"]["status"] == "ok"
+    again = attach_rehearsal(tmp_path, proposed="改官方测试", rehearsal={"status": "ok", "metric": 0.1})
+    assert again["skipped"] == "already"
+    saved = load_records(tmp_path)[0]
+    assert saved["rehearsal"]["metric"] == 0.9
+
+
+def test_attach_rehearsal_rejected_not_reopened(tmp_path: Path):
+    rec = append_event(tmp_path, **_shout_kwargs(proposed="改官方测试"))
+    resolve(tmp_path, rec["id"], "rejected", note="驳回")
+    out = attach_rehearsal(
+        tmp_path,
+        proposed="改官方测试",
+        rehearsal={"status": "ok", "metric": 0.9},
+    )
+    assert out == {"skipped": "rejected"}
+    saved = load_records(tmp_path)[0]
+    assert saved["resolution"]["status"] == "rejected"
+    assert "rehearsal" not in saved
+    lines = [ln for ln in _path(tmp_path).read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 1
+
+
+def test_attach_rehearsal_overwrite_running_to_ok(tmp_path: Path):
+    rec = attach_rehearsal(
+        tmp_path,
+        proposed="改官方测试",
+        rehearsal={"status": "running", "metric": None},
+    )
+    assert rec["rehearsal"]["status"] == "running"
+    assert rec["rehearsal"]["metric"] is None
+    updated = attach_rehearsal(
+        tmp_path,
+        proposed="改官方测试",
+        rehearsal={"status": "ok", "metric": 0.9},
+        overwrite=True,
+    )
+    assert updated["rehearsal"]["status"] == "ok"
+    assert updated["rehearsal"]["metric"] == 0.9
+    assert updated["resolution"]["status"] == "pending"
+    saved = load_records(tmp_path)[0]
+    assert saved["rehearsal"]["status"] == "ok"
+    assert saved["rehearsal"]["metric"] == 0.9
+    assert saved["resolution"]["status"] == "pending"
+
+
+def test_attach_rehearsal_overwrite_cannot_change_metric(tmp_path: Path):
+    attach_rehearsal(
+        tmp_path,
+        proposed="改官方测试",
+        rehearsal={"status": "ok", "metric": 0.9},
+    )
+    with pytest.raises(ValueError):
+        attach_rehearsal(
+            tmp_path,
+            proposed="改官方测试",
+            rehearsal={"status": "ok", "metric": 0.1},
+            overwrite=True,
+        )
+    saved = load_records(tmp_path)[0]
+    assert saved["rehearsal"]["metric"] == 0.9

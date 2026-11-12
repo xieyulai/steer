@@ -15,6 +15,7 @@ from typing import Any
 REL_PATH = Path("_runs") / "analysis" / "e_feedback.jsonl"
 KIND_OK = frozenset({"shout", "executed"})
 RESOLVE_OK = frozenset({"adopted", "deferred", "rejected"})
+_REHEARSAL_STATUS_OK = frozenset({"running", "ok", "fail"})
 _ID_RE = re.compile(r"^E(\d{8})_(\d{3})$")
 
 
@@ -154,6 +155,78 @@ def append_event(
         },
     }
     records.append(rec)
+    _atomic_write(feedback_path(repo_root), records)
+    return rec
+
+
+def attach_rehearsal(
+    repo_root: Path | str,
+    proposed: str,
+    rehearsal: dict,
+    *,
+    overwrite: bool = False,
+    why: str = "",
+    ask: str = "",
+) -> dict[str, Any]:
+    """把预演结果写到同主张的待审 shout 上；同一主张默认只记一次。"""
+    if not isinstance(rehearsal, dict):
+        raise ValueError("rehearsal 须为 dict")
+    reh_status = rehearsal.get("status")
+    if reh_status not in _REHEARSAL_STATUS_OK:
+        raise ValueError(
+            f"rehearsal.status 须为 running/ok/fail，得 {reh_status!r}"
+        )
+
+    records = load_records(repo_root)
+    prop_key = _norm_proposed(proposed)
+    pending_idx: int | None = None
+    blocked: str | None = None
+    for i, existing in enumerate(records):
+        if existing.get("kind") != "shout":
+            continue
+        if _norm_proposed(existing.get("proposed")) != prop_key:
+            continue
+        res_status = (existing.get("resolution") or {}).get("status")
+        if res_status == "pending":
+            pending_idx = i
+            break
+        if res_status in ("rejected", "adopted") and blocked is None:
+            blocked = str(res_status)
+
+    if pending_idx is None:
+        if blocked is not None:
+            return {"skipped": blocked}
+        created = append_event(
+            repo_root,
+            kind="shout",
+            proposed=proposed,
+            why_abcd_insufficient=why or proposed,
+            ask=ask or "rehearse",
+            quote="",
+            experiment="",
+            source="rehearse",
+            round_hint=None,
+        )
+        if "skipped" in created:
+            return created
+        records = load_records(repo_root)
+        pending_idx = next(
+            i for i, r in enumerate(records) if r.get("id") == created.get("id")
+        )
+
+    rec = records[pending_idx]
+    existing_reh = rec.get("rehearsal")
+    if isinstance(existing_reh, dict) and not overwrite:
+        return {"skipped": "already"}
+    if overwrite and isinstance(existing_reh, dict):
+        old_m = existing_reh.get("metric")
+        new_m = rehearsal.get("metric")
+        if old_m is not None and new_m is not None and old_m != new_m:
+            raise ValueError("rehearsal.metric 已写入，不允许改成另一个数")
+
+    rec = dict(rec)
+    rec["rehearsal"] = dict(rehearsal)
+    records[pending_idx] = rec
     _atomic_write(feedback_path(repo_root), records)
     return rec
 
