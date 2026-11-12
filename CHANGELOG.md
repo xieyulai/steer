@@ -11,14 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- feat: 隔离副本预演改题并写回改题卡与成绩表
-- feat: 改题卡记下预演结果且同一主张只记一次
-- feat: 成绩表允许 E-rehearsal 这一格
-- feat: 正式成绩计算跳过改题预演行
+- Contract-change rehearsal. An experiment agent may run `scripts/rehearse_e.py` in a disposable copy. The live contract is not edited, and `NN_RELAUNCH` is set only inside that copy.
+- The result is written on the existing change-proposal card. The same proposal is recorded once. A rejected or adopted proposal is not reopened, and a score that has already been written cannot be replaced with a different number.
+- The scoreboard accepts exactly one new cell, `E-rehearsal`. The primary metric stays empty. The number is stored in `rehearsal_score`. Every other `E-` cell is still rejected.
 
-### Fixed
+### Changed
 
-- fix: 跨场景最高分也跳过改题预演行
+- Official score calculations skip `E-rehearsal` rows: the best score, including the cross-scenario fallback, the keep threshold, the plateau streak, the goal check, and the previous trained row. A rehearsal score is not the current best.
+- Adopting, deferring, or rejecting the card updates the record only. It does not change the contract and does not promote the rehearsal score.
+- The protocol and the automatic multi-round instructions allow this rehearsal. A normal round still must not set `tier_this_round` to E.
 
 ## [3.4.2] - 2026-10-14
 
