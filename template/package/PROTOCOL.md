@@ -774,6 +774,8 @@ auto-run 每轮向 agent prompt 注入一段**数值快照**，**纯只读 / 不
 | 自主区 | A–D | 可改 `train.py` + `workspace/` |
 | 宪法区 | E | **禁止** Agent 设 `NN_RELAUNCH` 或改 `contract/`；须停 automation → 人审 → relaunch |
 
+**预演区（不落地）：** 智能体可以自己跑 `scripts/rehearse_e.py`，在隔离副本里试改题。正仓禁止改 `contract/`、禁止设置 `NN_RELAUNCH`。预演不代替 A–D 训练。`tier_this_round` 仍不得为 E。预演读数不得写成当前最好；人留下主张也不改合同、不把读数升成正式成绩。落地仍须人开 modify，并在正仓设置 `NN_RELAUNCH`。
+
 **仅当下面任一成立才记 / 提议 Tier E**（ledger 与旧 run 可能不可比）：
 
 1. 改 `METRIC_KEY` 或主指标定义/方向  
@@ -930,7 +932,7 @@ Tab 分隔；须含 **`experiment`、必填 `scenario_id`**（F1 场景清单 ID
 
 **可选列**：业务仓可追加 `timestamp`（ISO8601 字符串，由 `finalize_round` 自动写入，仅留档）、`average_forgetting` / `backward_transfer` 等领域指标；只要首行表头声明、对齐即可。**禁止**加 `keep` / `discard` 等 KEEP 决策列（决定由 `should_keep` / `round_decision.json` 承担）。
 
-**系统观察列 `exploration_space`（探索空间）**：格式 `{TIER}-{depth}`（如 `B-routine` / `C-different` / `B-novel`）。`finalize_round` **必须**当场写入 A–D 格子（`{A|B|C|D}-{routine|derived|different}`）；正式训完不得空格。**禁止** `E-` 入列（改题另记 `_runs/analysis/e_feedback.jsonl`，不进成绩表列）。反思写待办只记账、不等待；人点名分析或手跑反思时才问留下 / 搁置 / 驳回，**三种处置都只更新记录、不改实验**。驳回后同主张不再提；留下只给建议；搁置下次可再提。深度为 RDDN（`routine`/`derived`/`different`/`novel`）；`novel` **仅**由 `reflect` 把结构层 `different` 升格盖章（`scripts/sync_exploration_ledger.py`），与 TAM 举证不同。旧仓：`regen_results_tsv` 加空列后可 `--backfill-all`。
+**系统观察列 `exploration_space`（探索空间）**：格式 `{TIER}-{depth}`（如 `B-routine` / `C-different` / `B-novel`）。`finalize_round` **必须**当场写入 A–D 格子（`{A|B|C|D}-{routine|derived|different}`）；正式训完不得空格。**只允许** `E-rehearsal` 这一格入列（其它 `E-` 仍然禁止）。该行由 `scripts/rehearse_e.py` 追加：主指标格子为空，读数在 `rehearsal_score`，`experiment` 为 `e_rehearsal_<改题卡 id>`。该行不参与最高分、保留门槛、撞墙、达标、上一有效训练行，也不得写成当前最好。改题主张仍记 `_runs/analysis/e_feedback.jsonl`。反思写待办只记账、不等待；人点名分析或手跑反思时才问留下 / 搁置 / 驳回，**三种处置都只更新记录、不改实验**。驳回后同主张不再提；留下只给建议；搁置下次可再提。深度为 RDDN（`routine`/`derived`/`different`/`novel`）；`novel` **仅**由 `reflect` 把结构层 `different` 升格盖章（`scripts/sync_exploration_ledger.py`），与 TAM 举证不同。旧仓：`regen_results_tsv` 加空列后可 `--backfill-all`。
 
 **`_runs/results.jsonl`（与 TSV 成对追加）**
 

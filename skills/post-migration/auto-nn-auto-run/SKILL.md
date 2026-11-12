@@ -21,7 +21,7 @@ description: >-
 | 角色 | 做什么 |
 |------|--------|
 | **人** | 改能力（`/auto-nn-modify`）；路线图（`/auto-nn-human-guidance`）；调 `exploration_mode` 等 |
-| **实验 Agent（常规轮）** | 直接改 `config.json` 实验参数；直接改 `train.py`/`workspace/`（守 PROTOCOL §0.1）；**不**嵌套 modify；动 `contract/` 须人开 modify + `NN_RELAUNCH=1` 后重开 batch |
+| **实验 Agent（常规轮）** | 直接改 `config.json` 实验参数；直接改 `train.py`/`workspace/`（守 PROTOCOL §0.1）；**不**嵌套 modify；动 `contract/` 须人开 modify + `NN_RELAUNCH=1` 后重开 batch；预演改题只走 `scripts/rehearse_e.py`，不在正仓改合同，预演分不得写成当前最好 |
 | **编排** | 注入 Run Context；门禁 reflect / HUMAN；轮末 round-doctor |
 
 与 package `CLAUDE.md` §迁后 auto-run / §你可改·不可改（两态）同源；冲突以 PROTOCOL §0.1 与 CLAUDE 为准。
