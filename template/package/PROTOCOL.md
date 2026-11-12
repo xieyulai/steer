@@ -739,10 +739,10 @@ auto-run 每轮向 agent prompt 注入一段**数值快照**，**纯只读 / 不
 | RL | timesteps、LR | policy net_arch | reward shaping、分项权重 | curriculum、demo mix | 换 eval 聚合 |
 | 物理/PINN | Adam lr | 网络深度 | PDE 残差权重 | collocation 采样 | 换验证场/误差定义 |
 
-**B vs E（任务不变）：** **E = 改题**（动 `contract/`：主指标、official test、KEEP 口径）；**B = 改表示**（动 `workspace` 模型/backbone，任务不变）。
+**B vs E（任务不变）：** **E = 改题**（动 `contract/`：主指标、official test、KEEP 口径、信息权限）；**B = 改表示**（动 `workspace` 模型/backbone，任务不变）。只在工作区把帧模式拨到差分、合同仍禁止解码端带上一帧，不是 B。
 
 ```text
-1. 改 contract 的 metric / test / KEEP？ → E（须 NN_RELAUNCH + 人审）
+1. 改 contract 的 metric / test / KEEP / 信息权限？ → E（须 NN_RELAUNCH + 人审）
 2. 主要改 build_model / backbone / 算子？ → B
 3. 主要改 loss / reward / 正则 / 物理项？ → C
 4. 主要改采样 / 课程 / buffer？ → D
@@ -763,7 +763,7 @@ auto-run 每轮向 agent prompt 注入一段**数值快照**，**纯只读 / 不
 
 - **假升档**：experiment 名含 `TierC` 但只改 `NN_*` 或 `train.py` 常量 → EXPERIENCE `## Tier 状态`（二维矩阵）记 **假升档**，不得声称「已试 C」。
 - **撞墙**：`agent.plateau_rounds` 触发且当前**具体格子**在 EXPERIENCE `## Tier 状态`（二维矩阵）标 **已穷尽** → 考虑同档下一深度或升下一未试档；`resolve_exploration().tier_start` 仅决定**起手**档（A–D），不锁定终身只调 A。`aggressive`/`innovate` 档 reflect router 联动更深外源检索（绕过 beat_best 短路；见 §5.1 外源表）。
-- Reflect / 文献 **禁止**把 Koopman、FNO、DeepONet 等 backbone 或 neural operator 默认标 **E**；应映射 **B**（`workspace` 模型）、**C**（目标）、**D**（分布）。**Tier E 仅当**明确建议改 `contract` 的 metric、official test 或 KEEP 口径。
+- Reflect / 文献 **禁止**把 Koopman、FNO、DeepONet 等 backbone 或 neural operator 默认标 **E**；应映射 **B**（`workspace` 模型）、**C**（目标）、**D**（分布）。**Tier E 仅当**明确建议改 `contract` 的 metric、official test、KEEP 口径，或官方路径允许使用的信息。
 - **C/B 穷尽 ≠ E 穷尽**；升档建议 **A→B→C→D→E**，勿跳过 B 直接文献 E。
 - `tier_this_round` 须与 `tier_change` 路径一致：`workspace/.../model`→B，`loss`/reward→C，`contract/`→E；更长训练/OOM 归 A 或 D-工程，**不是 E**。**常规 auto-run 轮 `tier_this_round` 不得为 E**（人审 relaunch 轮可记 E）。
 
@@ -782,6 +782,9 @@ auto-run 每轮向 agent prompt 注入一段**数值快照**，**纯只读 / 不
 2. 改 `contract.test` / 官方 test / F1 锁定的 `TEST_USES`、场景划分  
 3. 改 `improve_mode` 或 KEEP 池使历史 SOTA 不可比（改 `primary_delta_rel` 只影响 KEEP 判定，不破坏历史可比性）  
 4. 立项级换题（问题陈述与 F1 不一致）
+5. 改官方路径允许使用的信息（信息权限：解码端能否带状态、观测面、暴露集）。比特预算、主指标、划分可以不动
+
+**改题卡类型：** 新的 shout 必须带 `e_type` 和一行 `headline`（不超过 80 字）。`e_type` 只能是 `method_escape`（换方法破平台）、`score_rule`（改计分或保留）、`task_scope`（改题面）、`trainable`（让目标能训练）、`information_visibility`（改看得见的信息）、`other`（其他）。`other` 必须另写一行 `e_type_note`。一张卡一个类型。复提加 `continues` 指向原卡编号，类型沿用原卡。允许解码端记住上一帧的差分编码记 `information_visibility`。旧卡没有这些字段的不回写。
 
 **不算 E**（仍在 A–D）：换模型 **B**、改 loss/辅助任务 **C**、改采样 **D**、更长训练 **A**；多记 `AUX_METRICS` 但 KEEP 仍盯原主指标 → **不是 E**。
 

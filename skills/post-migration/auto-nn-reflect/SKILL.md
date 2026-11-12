@@ -116,7 +116,7 @@ env_vars_consumed:
 - [ ] 若有 `WARN innovation_audit`：检查 EXPERIENCE 二维矩阵与 `innovation_depth` 声明是否矛盾 → 更正矩阵（以 reflect 审计 + EXPERIENCE 实际格子为准）
 - [ ] 确认 `references/auto/*_auto_reflected.md` 与 `references/REFLECT_INDEX.md` 的 **待消费** 已更新（至多 1 条；应同时包含 `[TAM: …]` 与 `[Innovation: …]`）
 - [ ] **禁止**在本轮修改 `train.py`、`workspace/`、`contract/`、`experiment.py`。
-- [ ] **改题待办**：`reflect.py` 三条齐全则只**记账**（`e_feedback.jsonl`），**不等待人答**。若本技能是**人点名**的手跑反思（不是 auto-run 脚本拉起）：跑完后 `python3 scripts/e_feedback.py pending --repo-root .`，有待审则只问一句留下/搁置/驳回；人答则 `resolve`，**只改记录、不改实验**。auto-run 内的 reflect **只记账、不问**。
+- [ ] **改题待办**：`reflect.py` 主张、理由、请求、类型和一行标题齐全则只**记账**（`e_feedback.jsonl`），**不等待人答**。若本技能是**人点名**的手跑反思（不是 auto-run 脚本拉起）：跑完后 `python3 scripts/e_feedback.py pending --repo-root .`，有待审则只问一句留下/搁置/驳回；人答则 `resolve`，**只改记录、不改实验**。auto-run 内的 reflect **只记账、不问**。
 - [ ] 反思块「下轮建议」须映射 **二维梯子**（例如 B-routine 穷尽 → 优先 B-extend，而非直接升 C）；**禁止**仅凭 TAM `B:att×n` 就说“该档已穷尽”；**禁止** E=更长训练/OOM/算力；文献方案写 C 或 D + 路径
 
 ## Phase 1.85 — 外部证据（reflect 内自动查文献）

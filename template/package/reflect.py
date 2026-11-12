@@ -1422,7 +1422,7 @@ Read and integrate: (1) experiment ledger ({ledger_hint}; summary below),
    - 撞墙/证伪须引用 ≥1 条 attested_failure 或 TAM 中 DISCARD 且 attested/shallow/false_claim 的 run（若 REB 中存在）
 (9) **改题人决议** — **硬约束**：
    - 留下 / 搁置 / 驳回 **都不得**改 contract / 题面 / 指标 / 官方测试。
-   - 已驳回的类似主张：e_proposed / e_why_abcd / e_ask 必须空串。
+   - 已驳回的类似主张：e_proposed / e_why_abcd / e_ask / e_type / e_headline 必须空串。
    - 已留下的：只可当建议，禁止再填三键催改，禁止当已落地。
    - 已搁置的：不当禁令；若仍主张改题，可以再填三键。
 {e_fb}
@@ -1473,13 +1473,17 @@ Produce this EXACT JSON to stdout (write ONLY the JSON):
     "potential_risks": ["下一轮可能遇到的 1-2 个风险：过拟合、plateau、数据泄露、硬编码参数未提取等"]
   }},
   "phase2_focus": "Specific question for backbone/operator (Tier B), objective (Tier C), or data pipeline (Tier D); not Tier E unless contract metric/test changes",
-  "e_proposed": "若主张改题面（指标/官方测试/场景/KEEP/问题陈述）填具体改什么；否则空串",
+  "e_proposed": "若主张改题（指标/官方测试/场景/KEEP/信息权限/问题陈述）填具体改什么；否则空串",
   "e_why_abcd": "若主张改题：为何 A–D 解不开（具体）；否则空串",
-  "e_ask": "若主张改题：请求人开闸或走改能力；否则空串"
+  "e_ask": "若主张改题：请求人开闸或走改能力；否则空串",
+  "e_type": "主张改题时填 method_escape / score_rule / task_scope / trainable / information_visibility / other 之一；否则空串。允许解码端记住上一帧填 information_visibility",
+  "e_headline": "主张改题时填一行字（不超过 80 字）；否则空串",
+  "e_type_note": "仅 e_type=other 时填一行原因；否则空串",
+  "e_continues": "复提已有卡时填原卡 id，类型沿用原卡；否则空串"
 }}
 
-改题规则：只有当你明确主张修改 contract/题面 时才填 e_proposed / e_why_abcd / e_ask（三条齐全）；
-否则三个键一律留空字符串。禁止用散文「Tier E」代替这三键；成绩表格子仍只谈 A–D。
+改题规则：只有当你明确主张修改 contract（指标、官方测试、KEEP、信息权限或问题陈述）时才填 e_proposed / e_why_abcd / e_ask / e_type / e_headline（五条齐全；other 再加 e_type_note）；
+否则这些键一律留空字符串。一张卡只选一个 e_type。禁止用散文「Tier E」代替这些键；成绩表格子仍只谈 A–D。
 人已驳回的类似主张必须空串；人已留下的只复述建议、不得再催改；搁置可再提。""")
 
 
@@ -1659,19 +1663,23 @@ def _maybe_record_shout_e_feedback(
     round_decision: dict | None,
     round_hint: int | None,
 ) -> None:
-    """Phase 1 JSON 三条齐全 → shout；禁止扫 Tier E 散文。"""
+    """Phase 1 JSON 主张、理由、请求、类型、一行标题齐全 → shout；禁止扫 Tier E 散文。"""
     from lib.e_feedback_store import try_append_shout_from_reflect
 
     cur = _current_exp_dir_for_e_feedback(repo_root, fingerprint, round_decision)
     experiment = cur.name if cur is not None else str(phase1.get("best_exp") or "reflect")
     quote = str(phase1.get("key_insight") or phase1.get("wall_crash_detail") or "")
-    rec = try_append_shout_from_reflect(
-        repo_root,
-        phase1,
-        experiment=experiment,
-        round_hint=round_hint,
-        quote=quote,
-    )
+    try:
+        rec = try_append_shout_from_reflect(
+            repo_root,
+            phase1,
+            experiment=experiment,
+            round_hint=round_hint,
+            quote=quote,
+        )
+    except ValueError as exc:
+        print(f"[reflect] e_feedback shout skipped: {exc}", file=sys.stderr)
+        return
     skipped = rec.get("skipped")
     if skipped == "incomplete":
         return

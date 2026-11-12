@@ -43,6 +43,8 @@ def _shout_kwargs(**over):
         experiment="exp_demo",
         source="reflect",
         round_hint=3,
+        e_type="score_rule",
+        headline="改主指标",
     )
     base.update(over)
     return base
@@ -74,6 +76,9 @@ def test_append_shout_writes_record_shape_and_id(tmp_path: Path):
     assert rec["ask"] == "开闸改主指标"
     assert rec["quote"] == "建议改题面主指标"
     assert rec["source"] == "reflect"
+    assert rec["e_type"] == "score_rule"
+    assert rec["headline"] == "改主指标"
+    assert "e_type_note" not in rec
     assert "ts" in rec and rec["ts"]
     assert rec["resolution"] == {
         "status": "pending",
@@ -216,6 +221,7 @@ def test_executed_writes_without_shout_triple(tmp_path: Path):
         round_hint=None,
     )
     assert rec["kind"] == "executed"
+    assert "e_type" not in rec
     assert pending_count(tmp_path) == 1
 
 
@@ -249,6 +255,8 @@ def test_try_append_shout_from_reflect_writes(tmp_path: Path):
             "e_proposed": "改官方测试",
             "e_why_abcd": "扫不动测试口径",
             "e_ask": "开闸改 test",
+            "e_type": "task_scope",
+            "e_headline": "改官方测试范围",
             "key_insight": "需要改题",
         },
         experiment="e2",
@@ -257,6 +265,8 @@ def test_try_append_shout_from_reflect_writes(tmp_path: Path):
     )
     assert rec["kind"] == "shout"
     assert rec["proposed"] == "改官方测试"
+    assert rec["e_type"] == "task_scope"
+    assert rec["headline"] == "改官方测试范围"
     assert pending_count(tmp_path) == 1
 
 
@@ -365,8 +375,68 @@ def test_try_append_executed_requires_relaunch_and_diff(tmp_path: Path):
     assert rec["source"] == "reflect"
 
 
+def test_shout_requires_type_and_headline(tmp_path: Path):
+    missing = append_event(tmp_path, **_shout_kwargs(e_type=None, headline=""))
+    assert missing == {"skipped": "incomplete"}
+    assert not _path(tmp_path).exists()
+    with pytest.raises(ValueError):
+        append_event(tmp_path, **_shout_kwargs(e_type="visibility"))
+    other = append_event(tmp_path, **_shout_kwargs(e_type="other", headline="说不清的改动"))
+    assert other == {"skipped": "incomplete"}
+    noted = append_event(
+        tmp_path,
+        **_shout_kwargs(
+            proposed="换一种没见过的合同口径",
+            e_type="other",
+            headline="说不清的改动",
+            e_type_note="五类都套不上",
+        ),
+    )
+    assert noted["e_type"] == "other"
+    assert noted["e_type_note"] == "五类都套不上"
+
+
+def test_information_visibility_and_continues(tmp_path: Path):
+    first = append_event(
+        tmp_path,
+        **_shout_kwargs(
+            proposed="允许解码端记住上一帧",
+            e_type="information_visibility",
+            headline="允许解码端记住上一帧",
+        ),
+    )
+    assert first["e_type"] == "information_visibility"
+    again = append_event(
+        tmp_path,
+        **_shout_kwargs(
+            proposed="同一句再写一遍但换了说法",
+            e_type="",
+            headline="复提：记住上一帧",
+            continues=first["id"],
+        ),
+    )
+    assert again["continues"] == first["id"]
+    assert again["e_type"] == "information_visibility"
+    with pytest.raises(ValueError):
+        append_event(
+            tmp_path,
+            **_shout_kwargs(
+                proposed="想改成另一类",
+                e_type="score_rule",
+                headline="改成计分",
+                continues=first["id"],
+            ),
+        )
+
+
 def test_attach_rehearsal_once(tmp_path: Path):
-    rec = attach_rehearsal(tmp_path, proposed="改官方测试", rehearsal={"status": "ok", "metric": 0.9})
+    rec = attach_rehearsal(
+        tmp_path,
+        proposed="改官方测试",
+        rehearsal={"status": "ok", "metric": 0.9},
+        e_type="task_scope",
+        headline="改官方测试",
+    )
     assert rec["resolution"]["status"] == "pending"
     assert rec["rehearsal"]["status"] == "ok"
     again = attach_rehearsal(tmp_path, proposed="改官方测试", rehearsal={"status": "ok", "metric": 0.1})
@@ -396,6 +466,8 @@ def test_attach_rehearsal_overwrite_running_to_ok(tmp_path: Path):
         tmp_path,
         proposed="改官方测试",
         rehearsal={"status": "running", "metric": None},
+        e_type="information_visibility",
+        headline="允许解码端记住上一帧",
     )
     assert rec["rehearsal"]["status"] == "running"
     assert rec["rehearsal"]["metric"] is None
@@ -419,6 +491,8 @@ def test_attach_rehearsal_overwrite_cannot_change_metric(tmp_path: Path):
         tmp_path,
         proposed="改官方测试",
         rehearsal={"status": "ok", "metric": 0.9},
+        e_type="score_rule",
+        headline="改计分",
     )
     with pytest.raises(ValueError):
         attach_rehearsal(

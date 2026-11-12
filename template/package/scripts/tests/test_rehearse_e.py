@@ -53,6 +53,8 @@ def _init_repo(tmp_path: Path) -> tuple[Path, bytes]:
         experiment="",
         source="test",
         round_hint=None,
+        e_type="information_visibility",
+        headline="允许解码端记住上一帧",
     )
     return repo, runtime.read_bytes()
 
@@ -112,6 +114,10 @@ def _run(
             WHY,
             "--ask",
             ASK,
+            "--e-type",
+            "information_visibility",
+            "--headline",
+            "允许解码端记住上一帧",
             "--patch",
             str(patch),
             "--train-cmd",

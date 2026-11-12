@@ -403,7 +403,18 @@ def _body(
     }
 
 
-def _book(repo: Path, proposed: str, why: str, ask: str, rehearsal: dict) -> None:
+def _book(
+    repo: Path,
+    proposed: str,
+    why: str,
+    ask: str,
+    rehearsal: dict,
+    *,
+    e_type: str = "",
+    headline: str = "",
+    e_type_note: str = "",
+    continues: str = "",
+) -> None:
     attach_rehearsal(
         repo,
         proposed,
@@ -411,6 +422,10 @@ def _book(repo: Path, proposed: str, why: str, ask: str, rehearsal: dict) -> Non
         overwrite=True,
         why=why,
         ask=ask,
+        e_type=e_type,
+        headline=headline,
+        e_type_note=e_type_note,
+        continues=continues,
     )
 
 
@@ -422,6 +437,10 @@ def rehearse(
     ask: str,
     patch: Path,
     train_cmd: str | None,
+    e_type: str,
+    headline: str,
+    e_type_note: str = "",
+    continues: str = "",
 ) -> int:
     if os.environ.get("NN_RELAUNCH", "").strip():
         _say("父进程已设置 NN_RELAUNCH")
@@ -439,6 +458,10 @@ def rehearse(
         {"status": "running", "metric": None},
         why=why,
         ask=ask,
+        e_type=e_type,
+        headline=headline,
+        e_type_note=e_type_note,
+        continues=continues,
     )
     if "skipped" in placed:
         _say(f"未占位: {placed.get('skipped')}")
@@ -651,6 +674,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ask", required=True, help="想请人做什么")
     parser.add_argument("--patch", required=True, type=Path, help="只改 contract/ 的补丁")
     parser.add_argument(
+        "--e-type",
+        required=True,
+        choices=[
+            "method_escape",
+            "score_rule",
+            "task_scope",
+            "trainable",
+            "information_visibility",
+            "other",
+        ],
+        help="改题类型。信息权限用 information_visibility",
+    )
+    parser.add_argument("--headline", required=True, help="一行标题，不超过 80 字")
+    parser.add_argument("--e-type-note", default="", help="类型为 other 时必填的一行说明")
+    parser.add_argument("--continues", default="", help="复提时填写原卡 id，类型沿用原卡")
+    parser.add_argument(
         "--train-cmd",
         default=None,
         help="在副本里执行的训练命令；缺省为 python3 train.py",
@@ -665,6 +704,10 @@ def main(argv: list[str] | None = None) -> int:
         ask=args.ask,
         patch=patch,
         train_cmd=args.train_cmd,
+        e_type=args.e_type,
+        headline=args.headline,
+        e_type_note=args.e_type_note,
+        continues=args.continues,
     )
 
 

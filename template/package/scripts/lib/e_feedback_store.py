@@ -16,6 +16,15 @@ REL_PATH = Path("_runs") / "analysis" / "e_feedback.jsonl"
 KIND_OK = frozenset({"shout", "executed"})
 RESOLVE_OK = frozenset({"adopted", "deferred", "rejected"})
 _REHEARSAL_STATUS_OK = frozenset({"running", "ok", "fail"})
+E_TYPES = frozenset({
+    "method_escape",
+    "score_rule",
+    "task_scope",
+    "trainable",
+    "information_visibility",
+    "other",
+})
+HEADLINE_MAX = 80
 _ID_RE = re.compile(r"^E(\d{8})_(\d{3})$")
 
 
@@ -37,6 +46,49 @@ def _blank(s: str | None) -> bool:
 
 def _norm_proposed(s: str | None) -> str:
     return (s or "").strip().lower()
+
+
+def _one_line(value: str | None) -> str:
+    return " ".join(str(value or "").split())
+
+
+def _shout_face(
+    records: list[dict[str, Any]],
+    *,
+    e_type: str | None,
+    headline: str,
+    e_type_note: str,
+    continues: str,
+) -> dict[str, str]:
+    """新 shout 的卡面。缺字段返回空 dict（调用方当 incomplete）。类型非法或 continues 对不上则抛 ValueError。"""
+    et = (e_type or "").strip()
+    if et and et not in E_TYPES:
+        raise ValueError(f"e_type 须为 {sorted(E_TYPES)}，得 {et!r}")
+    cont = (continues or "").strip()
+    if cont:
+        prior = next((r for r in records if str(r.get("id") or "") == cont), None)
+        if prior is None:
+            raise ValueError(f"continues 指向的改题卡不存在: {cont}")
+        prior_type = str(prior.get("e_type") or "").strip()
+        if prior_type:
+            if et and et != prior_type:
+                raise ValueError(f"continues 须沿用原卡类型 {prior_type}，得 {et!r}")
+            et = prior_type
+    hl = _one_line(headline)
+    note = _one_line(e_type_note)
+    if (
+        not et
+        or not hl
+        or len(hl) > HEADLINE_MAX
+        or (et == "other" and (not note or len(note) > HEADLINE_MAX))
+    ):
+        return {}
+    face = {"e_type": et, "headline": hl}
+    if cont:
+        face["continues"] = cont
+    if et == "other":
+        face["e_type_note"] = note
+    return face
 
 
 def load_records(repo_root: Path | str) -> list[dict[str, Any]]:
@@ -103,6 +155,10 @@ def append_event(
     experiment: str,
     source: str,
     round_hint: int | None,
+    e_type: str | None = None,
+    headline: str = "",
+    e_type_note: str = "",
+    continues: str = "",
 ) -> dict[str, Any]:
     if kind not in KIND_OK:
         raise ValueError(f"kind 须为 {sorted(KIND_OK)}，得 {kind!r}")
@@ -135,6 +191,18 @@ def append_event(
         _atomic_write(feedback_path(repo_root), records)
         return blocked_skip
 
+    face: dict[str, str] = {}
+    if kind == "shout":
+        face = _shout_face(
+            records,
+            e_type=e_type,
+            headline=headline,
+            e_type_note=e_type_note,
+            continues=continues,
+        )
+        if not face:
+            return {"skipped": "incomplete"}
+
     day = _today_yyyymmdd()
     rec: dict[str, Any] = {
         "id": _next_id(records, day),
@@ -154,6 +222,7 @@ def append_event(
             "note": None,
         },
     }
+    rec.update(face)
     records.append(rec)
     _atomic_write(feedback_path(repo_root), records)
     return rec
@@ -167,6 +236,10 @@ def attach_rehearsal(
     overwrite: bool = False,
     why: str = "",
     ask: str = "",
+    e_type: str | None = None,
+    headline: str = "",
+    e_type_note: str = "",
+    continues: str = "",
 ) -> dict[str, Any]:
     """把预演结果写到同主张的待审 shout 上；同一主张默认只记一次。"""
     if not isinstance(rehearsal, dict):
@@ -206,6 +279,10 @@ def attach_rehearsal(
             experiment="",
             source="rehearse",
             round_hint=None,
+            e_type=e_type,
+            headline=headline,
+            e_type_note=e_type_note,
+            continues=continues,
         )
         if "skipped" in created:
             return created
@@ -385,6 +462,7 @@ def try_append_shout_from_reflect(
     quote: str = "",
 ) -> dict[str, Any]:
     proposed, why, ask = shout_fields_from_reflect_payload(payload)
+    payload = payload if isinstance(payload, dict) else {}
     return append_event(
         repo_root,
         kind="shout",
@@ -395,6 +473,10 @@ def try_append_shout_from_reflect(
         experiment=experiment,
         source="reflect",
         round_hint=round_hint,
+        e_type=str(payload.get("e_type") or ""),
+        headline=str(payload.get("e_headline") or ""),
+        e_type_note=str(payload.get("e_type_note") or ""),
+        continues=str(payload.get("e_continues") or ""),
     )
 
 

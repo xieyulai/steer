@@ -98,6 +98,8 @@ def test_check_brief_e_feedback_pending_count(tmp_path: Path):
         experiment="k1",
         source="reflect",
         round_hint=1,
+        e_type="score_rule",
+        headline="改主指标",
     )
     r = _run(tmp_path)
     assert r.returncode == 0, r.stderr

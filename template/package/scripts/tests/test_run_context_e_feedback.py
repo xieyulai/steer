@@ -26,6 +26,8 @@ def _shout(tmp_path: Path, proposed: str = "改主指标") -> None:
         experiment="exp_demo",
         source="reflect",
         round_hint=1,
+        e_type="score_rule",
+        headline="改主指标",
     )
 
 
