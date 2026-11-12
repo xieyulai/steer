@@ -1203,7 +1203,10 @@ def resolve_cfg_for_ledger_key(cfg: dict[str, Any], key: str) -> Any | None:
 
 
 # 台账观察列：finalize 由 exploration_stamp 写入；不从 cfg 取值
-_LEDGER_OVERLAY_KEYS = frozenset({"exploration_space", "untrained", "rehearsal_score"})
+# 有序元组，勿改回集合：_effective_ledger_context_keys() 按本序补进表头，
+# 集合的迭代序随进程 PYTHONHASHSEED 变 ⇒ 同一份代码两次 regen 出两种表头，
+# verify/doctor 的 tsv_header 检查「刚 regen 完也可能 FAIL」（间歇性 flaky）。
+_LEDGER_OVERLAY_KEYS = ("exploration_space", "untrained", "rehearsal_score")
 
 
 def _extract_ledger_context(contract: Any, cfg: dict[str, Any] | None) -> dict[str, Any]:
