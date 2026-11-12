@@ -11,7 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- feat: 改题卡写入类型与一行标题
+- New change-proposal cards must record `e_type` and a one-line `headline` (at most 80 characters). Allowed types: `method_escape`, `score_rule`, `task_scope`, `trainable`, `information_visibility`, and `other`.
+- Type `other` requires a one-line `e_type_note`. A follow-up card may set `continues` to an existing card id and must keep that card's type.
+- Rehearsal CLI takes `--e-type` and `--headline`. Reflect JSON adds `e_type`, `e_headline`, `e_type_note`, and `e_continues`.
+
+### Changed
+
+- Changing what the official path may use (information visibility) counts as Tier E. Allowing the decoder to keep state from the previous frame is typed `information_visibility`. Old cards without these fields are left unchanged.
 
 ## [4.0.0] - 2026-11-12
 
