@@ -74,6 +74,50 @@ run_check() {
   fi
 }
 
+# ── 受保护的检查调用（模板 4.1.1 修 ②）────────────────────────────
+# set -e 下裸调用检查函数时，函数内第一个 return 1 会让整脚本**静默退出**，
+# 汇总行（PASS/WARN/FAIL）永远打不出来 ⇒ 调用方看不到任何结论。
+# 统一用 check_call 包一层：函数体内临时关闭 errexit ⇒ 非零返回不再中断脚本；
+# 函数自己会 row 记 PASS/WARN/FAIL；若非零退出却没记行，补记一条 FAIL，
+# 保证「收齐 FAIL 再汇总退出码」。
+check_call() {
+  local _rc=0 _f0="$FAIL"
+  # 用 if 条件调用（不是 set +e）：bash 只在「条件上下文」里忽略 -e，
+  # 函数体内部即使自己 set -e 再 return 1，也不会把整脚本带走。
+  # （set +e 不够：函数体内 set -e 会把全局选项改回 on，随后 return 1 依旧中止脚本。）
+  if "$@"; then
+    _rc=0
+  else
+    _rc=$?
+  fi
+  if [[ $_rc -ne 0 && $FAIL -eq $_f0 ]]; then
+    row "$1" FAIL "检查返回非零 (rc=${_rc}) 且未记录结果行"
+  fi
+  return 0
+}
+
+# ── 汇总兜底（模板 4.1.1 修 ②）：任何退出路径都要打出汇总 ──────────
+_SUMMARY_EMITTED=0
+_emit_summary() {
+  if [[ $_SUMMARY_EMITTED -eq 1 ]]; then
+    return 0
+  fi
+  _SUMMARY_EMITTED=1
+  if [[ $QUIET -eq 0 ]]; then
+    echo "[nn-doctor] 汇总: PASS=${PASS} WARN=${WARN} FAIL=${FAIL}"
+  fi
+  return 0
+}
+_doctor_on_exit() {
+  local _rc=$?
+  if [[ $_SUMMARY_EMITTED -eq 0 ]]; then
+    _emit_summary
+    echo "[nn-doctor] 注意: 脚本在汇总前异常中止 (exit=${_rc}) — 计数只含中止前已完成的检查项" >&2
+  fi
+  return 0
+}
+trap _doctor_on_exit EXIT
+
 resolve_template_pkg() {
   local troot
   troot="$(nn_resolve_template_root)" || troot=""
@@ -448,7 +492,7 @@ check_PDH_plain_anchor() {
   fi
   return 0
 }
-check_PDH_plain_anchor
+check_call check_PDH_plain_anchor
 
 # ── 1f. ledger.watchlist (v1.2.0 inline gate; NN-LEDBOOK spec) ──
 # 校验 nn-config.yaml 的 ledger.watchlist 段: 必为 list、字符串、非空、无重、长度 ≤ 10、
@@ -533,7 +577,7 @@ PYEOF
   row "$label" PASS ""
   return 0
 }
-check_ledger_watchlist
+check_call check_ledger_watchlist
 
 # ── 1g. baseline_tag（② 层2 契约：每实验 config.json 有 baseline_tag 字段）──
 check_baseline_tag() {
@@ -566,7 +610,7 @@ check_baseline_tag() {
   [[ $_warn -eq 0 ]] && row "baseline_tag" PASS "config.json baseline_tag 字段齐"
   return 0
 }
-check_baseline_tag
+check_call check_baseline_tag
 
 # ── 1g-b. runner 出分（EVALUATE_RUNNER）baseline_tag 列/watchlist 硬 FAIL ──
 # 行名 adapter_baseline_tag 为兼容遗留（≠ 立项 ADAPTER 场景）
@@ -588,7 +632,7 @@ if status is not None:
   row "adapter_baseline_tag" "$_status" "$_msg"
   return 0
 }
-check_adapter_baseline_tag
+check_call check_adapter_baseline_tag
 
 # ── 1g-c. runner 出分空串 CLI 透传硬 FAIL ──
 # 行名 adapter_cli_empty 为兼容遗留
@@ -610,7 +654,7 @@ if status is not None:
   row "adapter_cli_empty" "$_status" "$_msg"
   return 0
 }
-check_adapter_cli_empty
+check_call check_adapter_cli_empty
 
 # ── 1g-c2. framework 接入总表（contract/framework_binding.yaml）──
 check_framework_binding() {
@@ -632,7 +676,7 @@ for name, status, msg in framework_binding_doctor(Path('.').resolve()):
 " 2>/dev/null)
   return 0
 }
-check_framework_binding
+check_call check_framework_binding
 
 # ── 1g-d. 辅指标近轮恒 0 软 WARN（不 FAIL；合法真零可忽略）──
 check_aux_always_zero() {
@@ -653,7 +697,7 @@ if ws:
   row "aux_always_zero" "$_status" "$_msg"
   return 0
 }
-check_aux_always_zero
+check_call check_aux_always_zero
 
 check_baseline_reference() {
   # ③-i：EXPERIENCE「基线锚点（external reference）」段——段在则校验 reference_anchor_value 值域（float），
@@ -674,7 +718,7 @@ check_baseline_reference() {
   row "baseline_reference" PASS "基线锚点 reference_anchor_value 合法 float"
   return 0
 }
-check_baseline_reference
+check_call check_baseline_reference
 
 # ── 2. TSV 表头 ──
 if [[ $IS_TEMPLATE_ROOT -eq 1 ]]; then
@@ -791,7 +835,7 @@ print(','.join(m))
       row sync_need_files PASS "stamp-required（train_runtime）文件齐"
     fi
   }
-  check_sync_need_files
+  check_call check_sync_need_files
 fi
 
 # ── 3b. 模板版本 stamp（业务仓）──
@@ -1121,7 +1165,7 @@ if v:
     row scenario_not_in_contract FAIL "${_scn_out//$'\n'/; }"
   fi
 }
-check_scenario_not_in_contract
+check_call check_scenario_not_in_contract
 
 # ── 5b0. cfg_path_fallback（禁 env/绝对路径写入全大写 cfg 键）──
 check_cfg_path_fallback() {
@@ -1154,7 +1198,7 @@ if v:
     row cfg_path_fallback FAIL "${_cpf_out//$'\n'/; }"
   fi
 }
-check_cfg_path_fallback
+check_call check_cfg_path_fallback
 
 # ── 5b0b. shared_context_contract（禁袋内 contract 实例）──
 check_shared_context_contract() {
@@ -1187,7 +1231,7 @@ if v:
     row shared_context_contract FAIL "${_scc_out//$'\n'/; }"
   fi
 }
-check_shared_context_contract
+check_call check_shared_context_contract
 
 # ── 5b0c. time_budget_violations（取值点守卫违约记录；存在即 WARN）──
 check_time_budget_violations() {
@@ -1205,7 +1249,7 @@ check_time_budget_violations() {
     row time_budget_violations WARN "$_tbvl 存在但为空（可人工核看后删除）"
   fi
 }
-check_time_budget_violations
+check_call check_time_budget_violations
 
 # ── 5b. contract 演示指标冲突 ──
 if [[ $IS_TEMPLATE_ROOT -eq 0 ]] && [[ -n "$PROFILE" ]]; then
@@ -1424,7 +1468,7 @@ check_abcde_manual() {
     row abcde_manual FAIL "缺少 references/manual/abcde-manual.md（立项应生成；可跑 init_o3_abcde.py / abcde_migrate.py）"
   fi
 }
-check_abcde_manual
+check_call check_abcde_manual
 
 # ── 7c2b. abcde-manual 卫生（旧名 / 头身冲突；仅 WARN）──
 check_abcde_manual_hygiene() {
@@ -1455,7 +1499,7 @@ print(r[0] + '|' + r[1])
   _msg="${_out#*|}"
   row abcde_manual_hygiene "$_status" "$_msg"
 }
-check_abcde_manual_hygiene
+check_call check_abcde_manual_hygiene
 
 check_baseline_start_intent() {
   [[ $IS_TEMPLATE_ROOT -eq 0 ]] || return 0
@@ -1480,7 +1524,7 @@ check_baseline_start_intent() {
     row baseline_start_intent FAIL "init-qa-log 已闭合但缺尺子意图文件（写 saved/baseline_start_intent.json 或 .auto-nn/baseline-intent-skipped）"
   fi
 }
-check_baseline_start_intent
+check_call check_baseline_start_intent
 
 # ── 7c2c. init-align 轻闸（缺 WARN / 坏 FAIL / profile 不一致 WARN）──
 check_init_align() {
@@ -1509,7 +1553,7 @@ print(st + '|' + msg)
   _msg="${_out#*|}"
   row init_align "$_status" "$_msg"
 }
-check_init_align
+check_call check_init_align
 
 # ── 7d. REFLECT_INDEX 账本健康 ──
 if [[ $IS_TEMPLATE_ROOT -eq 0 ]]; then
@@ -1871,7 +1915,7 @@ print(r.doctor_status + '\t' + r.message)
       *) row contract_test_signature WARN "未知状态: $_line" ;;
     esac
   }
-  check_contract_test_signature
+  check_call check_contract_test_signature
 fi
 
 # ── 11. 运行环境（Poetry / torch / CUDA；换机后常见 FAIL）──
@@ -2059,9 +2103,7 @@ if [[ $DEEP -eq 1 ]]; then
   fi
 fi
 
-if [[ $QUIET -eq 0 ]]; then
-  echo "[nn-doctor] 汇总: PASS=${PASS} WARN=${WARN} FAIL=${FAIL}"
-fi
+_emit_summary
 if [[ $FAIL -gt 0 ]]; then
   if [[ $QUIET -eq 0 ]]; then
     echo "[nn-doctor] 结论: UNHEALTHY（存在 FAIL）" >&2
