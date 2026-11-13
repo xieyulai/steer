@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.4] - 2026-11-13
+
+### Fixed
+
+- `scripts/e_feedback.py resolve` no longer hard-codes `by="human"`. Callers must pass `--by <label>`; the value is a note only and does not change the contract or start training. The library `resolve(..., by="")` default is empty, not `"human"`.
+
 ## [4.1.3] - 2026-11-13
 
 ### Fixed
