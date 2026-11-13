@@ -125,6 +125,26 @@ def test_no_bare_check_invocation_left():
     assert "_emit_summary" in text
 
 
+def test_run_check_and_check_call_use_if_not_set_e_toggle():
+    """run_check / check_call must capture via `if`, not set +e / set -e."""
+    text = DOCTOR.read_text(encoding="utf-8")
+    assert 'if out="$("$@" 2>&1)"; then' in text
+    assert 'if "$@"; then' in text
+    # Old toggle pattern next to capturing the external command
+    assert "set +e\n  out=" not in text
+    assert "Do NOT use `set +e`" in text
+    assert "MUST be the first statement" in text
+
+
+def test_g_no_fallback_not_double_rowed_on_fail():
+    """Outer block must not row G_no_fallback again after check_no_fallback."""
+    text = DOCTOR.read_text(encoding="utf-8")
+    assert "if check_no_fallback .; then" in text
+    assert 'row G_no_fallback FAIL "见 G-no-fallback 检查"' not in text
+    assert "row G_repro_env PASS" in text
+    assert "row G_repro_env FAIL" in text
+
+
 def test_auto_nn_update_runs_doctor_even_when_verify_fails():
     """auto-nn-update: even if verify fails, doctor must still be run (Taishici ②,
     second half)."""

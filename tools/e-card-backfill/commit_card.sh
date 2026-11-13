@@ -13,12 +13,14 @@
 #      **never `git add` the whole working tree**; before committing, re-check the
 #      index to make sure it holds only this one file, and abort without committing
 #      if anything else is staged (prevents smuggling in business cards / other
-#      people's WIP).
+#      people's WIP). On abort, unstage only the ledger this script added.
 #   2. The decision basis in the commit message is written from the **decision files
 #      that actually exist**; one repo may be split into several shards such as
 #      <repo>.part1.json / <repo>.part2.json, and the hardcoded
 #      decisions/<repo>.json is no longer used (that repo has no such file at all
-#      ⇒ the basis path would be fake).
+#      ⇒ the basis path would be fake). Auto-infer with zero hits exits non-zero
+#      (do not commit with a placeholder basis). Explicit paths use the same
+#      AUTO_RESEARCH/e-card-backfill/decisions/<basename> form in the message.
 #
 # Single source of truth: this file is versioned together with the steer template
 # repo; the operational copy AUTO_RESEARCH/e-card-backfill/commit_card.sh is a
@@ -29,6 +31,7 @@ BASE="${NNF_BASE:-/data/xieyl/xie_workspace/AUTO_RESEARCH}"
 PROJ="$BASE/auto-nn-factory-projects"
 DEC="$BASE/e-card-backfill/decisions"
 LEDGER="_runs/analysis/e_feedback.jsonl"
+DEC_MSG_PREFIX="AUTO_RESEARCH/e-card-backfill/decisions"
 
 REPO="${1:-}"
 if [[ -z "$REPO" ]]; then
@@ -44,7 +47,7 @@ if [[ ! -d "$ROOT" ]]; then
 fi
 cd "$ROOT" || exit 2
 
-# ── List of decision-basis files (written from the files that actually exist, not hardcoded) ──
+# ── List of decision-basis files (written from the files that actually exist) ──
 DEC_LIST=""
 _add_dec() {
   local rel="$1"
@@ -55,11 +58,17 @@ _add_dec() {
   fi
 }
 
+_dec_msg_path() {
+  local f="$1"
+  echo "${DEC_MSG_PREFIX}/$(basename "$f")"
+}
+
+EXPLICIT=0
 if [[ $# -gt 0 ]]; then
-  # The caller supplied the decision files explicitly (apply_all.sh has the authoritative mapping)
+  EXPLICIT=1
   for f in "$@"; do
     if [[ -f "$f" ]]; then
-      _add_dec "$f"
+      _add_dec "$(_dec_msg_path "$f")"
     else
       echo "WARN: 指定的判定文件不存在，跳过: $f" >&2
     fi
@@ -67,11 +76,17 @@ if [[ $# -gt 0 ]]; then
 else
   for f in "$DEC/$REPO.json" "$DEC/$REPO".part*.json; do
     [[ -f "$f" ]] || continue
-    _add_dec "AUTO_RESEARCH/e-card-backfill/decisions/$(basename "$f")"
+    _add_dec "$(_dec_msg_path "$f")"
   done
 fi
 if [[ -z "$DEC_LIST" ]]; then
-  DEC_LIST="（未找到判定文件：AUTO_RESEARCH/e-card-backfill/decisions/${REPO}[.partN].json）"
+  echo "未找到判定文件: ${DEC_MSG_PREFIX}/${REPO}[.partN].json" >&2
+  if [[ $EXPLICIT -eq 1 ]]; then
+    echo "显式传入的路径均不存在，已中止（未提交）。" >&2
+  else
+    echo "自动推断为空，已中止（未提交）。请补判定文件或显式传入路径。" >&2
+  fi
+  exit 2
 fi
 
 # ── Stage only this backfill's target file ─────────────────────────────
@@ -86,7 +101,8 @@ EXTRA="$(git diff --cached --name-only | grep -v -x -F "$LEDGER" || true)"
 if [[ -n "$EXTRA" ]]; then
   echo "暂存区含非本次回填文件，已中止（未提交）:" >&2
   printf '  %s\n' "$EXTRA" >&2
-  echo "请先自行处理暂存区（git restore --staged <路径>），再重跑本脚本。" >&2
+  echo "已撤销本脚本对台账的 stage；其它已暂存文件未动。" >&2
+  git restore --staged -- "$LEDGER" 2>/dev/null || git reset HEAD -- "$LEDGER" 2>/dev/null || true
   exit 1
 fi
 

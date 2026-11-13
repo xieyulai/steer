@@ -122,7 +122,7 @@ def test_single_file_repo_uses_plain_decision_path(tmp_path):
 
 
 def test_aborts_when_index_contains_other_files(tmp_path):
-    """Other files mixed into the index ⇒ abort without committing (anti-smuggling)."""
+    """Other files mixed into the index ⇒ abort without committing; unstage ledger only."""
     base, repo = _fixture(tmp_path)
     _git(repo, "add", "business_card.txt")
     proc = _run(base, REPO)
@@ -130,10 +130,13 @@ def test_aborts_when_index_contains_other_files(tmp_path):
     assert "暂存区含非本次回填文件" in proc.stderr, proc.stderr
     # No new commit
     assert "init" in _git(repo, "log", "-1", "--pretty=format:%s")
+    cached = _git(repo, "diff", "--cached", "--name-only").split()
+    assert LEDGER not in cached, cached
+    assert "business_card.txt" in cached
 
 
 def test_explicit_decision_files_argument_is_used(tmp_path):
-    """When decision files are passed explicitly, the message uses those real paths."""
+    """Explicit paths appear in the message as AUTO_RESEARCH/.../basename, not abs paths."""
     base, repo = _fixture(tmp_path, parts=False)
     extra = base / "e-card-backfill" / "decisions" / f"{REPO}.part9.json"
     extra.write_text("{}", encoding="utf-8")
@@ -141,6 +144,19 @@ def test_explicit_decision_files_argument_is_used(tmp_path):
     assert proc.returncode == 0, proc.stdout + proc.stderr
     msg = _git(repo, "log", "-1", "--pretty=format:%B")
     assert f"decisions/{REPO}.part9.json" in msg, msg
+    assert str(extra) not in msg, msg
+
+
+def test_aborts_when_no_decision_files(tmp_path):
+    """Auto-infer finds nothing ⇒ exit 2, no commit."""
+    base, repo = _fixture(tmp_path)
+    dec = base / "e-card-backfill" / "decisions"
+    for p in dec.glob(f"{REPO}*"):
+        p.unlink()
+    proc = _run(base, REPO)
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "未找到判定文件" in proc.stderr, proc.stderr
+    assert "init" in _git(repo, "log", "-1", "--pretty=format:%s")
 
 
 if __name__ == "__main__":

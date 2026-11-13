@@ -3142,7 +3142,7 @@ class ExperimentBase:
 
         Contract 用类属性盖掉 ``ledger_context_keys`` property 时，仍保证
         ``baseline_tag`` / ``_LEDGER_OVERLAY_KEYS``（含 ``exploration_space`` /
-        ``untrained``）入表头与写行。
+        ``untrained`` / ``rehearsal_score``）入表头与写行。
         """
         keys = list(self.ledger_context_keys)
         if "baseline_tag" not in keys:

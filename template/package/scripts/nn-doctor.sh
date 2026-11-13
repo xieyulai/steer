@@ -63,10 +63,14 @@ run_check() {
   local name="$1"
   shift
   local out rc
-  set +e
-  out="$("$@" 2>&1)"
-  rc=$?
-  set -e
+  # Same model as check_call: capture in an `if` condition context.
+  # Do not use set +e / set -e here — a later set -e inside this function
+  # would turn global errexit back on and abort the whole doctor.
+  if out="$("$@" 2>&1)"; then
+    rc=0
+  else
+    rc=$?
+  fi
   if [[ $rc -eq 0 ]]; then
     row "$name" PASS "${out//$'\n'/; }"
   else
@@ -78,18 +82,15 @@ run_check() {
 # Under `set -e`, calling a check function bare makes the function's first
 # `return 1` abort the **whole script silently**, so the summary line
 # (PASS/WARN/FAIL) is never printed ⇒ the caller sees no conclusion at all.
-# Always wrap the call in check_call: errexit is temporarily disabled inside
-# the function body ⇒ a non-zero return no longer interrupts the script.
-# The function itself records a PASS/WARN/FAIL row; if it exits non-zero
-# without recording a row, an extra FAIL row is added, to guarantee
-# "collect every FAIL first, then summarise and decide the exit code".
+# Always wrap the call in check_call via an `if` condition context (bash
+# ignores -e only there). Do NOT use `set +e`: a `set -e` inside the check
+# function turns global errexit back on, and the subsequent `return 1` still
+# aborts the script. The function itself records a PASS/WARN/FAIL row; if it
+# exits non-zero without recording a row, an extra FAIL row is added, to
+# guarantee "collect every FAIL first, then summarise and decide the exit code".
 check_call() {
   local _rc=0 _f0="$FAIL"
-  # Invoke it in a condition context via `if` (not `set +e`): bash only ignores
-  # -e in a "condition context", so even if the function body turns `set -e`
-  # back on and then returns 1, it will not take the whole script down.
-  # (`set +e` is not enough: a `set -e` inside the function body turns the
-  # global option back on, and the subsequent `return 1` still aborts the script.)
+  # Invoke in a condition context via `if` (not `set +e`).
   if "$@"; then
     _rc=0
   else
@@ -115,6 +116,7 @@ _emit_summary() {
   return 0
 }
 _doctor_on_exit() {
+  # MUST be the first statement: any prior `local`/`true` would overwrite $? to 0.
   local _rc=$?
   if [[ $_SUMMARY_EMITTED -eq 0 ]]; then
     _emit_summary
@@ -359,27 +361,28 @@ check_no_fallback() {
   return 0
 }
 
-# ── 1d. G-repro-env 和 G-repro-cli（config-only 复现机制）──
+# ── 1d. G-repro-env / G-repro-cli / G-cfg-no-defaults / G-no-fallback ──
+# Capture in `if` so set -e does not abort.
+# check_repro_* / check_cfg_no_defaults only echo — row once here (PASS or FAIL).
+# check_no_fallback already calls row itself — absorb return only, never row twice.
 if [[ -f train.py ]]; then
   if check_repro_env .; then
-    : # PASS
+    row G_repro_env PASS "见检查输出"
   else
-    row G_repro_env FAIL "见 G-repro-env 检查"
+    row G_repro_env FAIL "见检查输出"
   fi
   if check_repro_cli train.py; then
-    : # PASS
+    row G_repro_cli PASS "见检查输出"
   else
-    row G_repro_cli FAIL "见 G-repro-cli 检查"
+    row G_repro_cli FAIL "见检查输出"
   fi
   if check_cfg_no_defaults .; then
-    : # PASS
+    row G_cfg_no_defaults PASS "见检查输出"
   else
-    row G_cfg_no_defaults FAIL "见 G-cfg-no-defaults 检查"
+    row G_cfg_no_defaults FAIL "见检查输出"
   fi
   if check_no_fallback .; then
-    : # PASS
-  else
-    row G_no_fallback FAIL "见 G-no-fallback 检查"
+    :
   fi
 fi
 
