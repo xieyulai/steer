@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-11-13
+
+### Fixed
+
+- `nn-doctor.sh` runs every check through an `if` guard instead of toggling `set +e` / `set -e`, the exit trap pins `local _rc=$?` as its first statement, a successful `G-repro` / `G-cfg` is recorded as PASS, and `G-no-fallback` no longer reports the same FAIL twice.
+- `tools/e-card-backfill/commit_card.sh` unstages only the ledger file when the index holds foreign files, exits with code 2 and commits nothing when the decision file cannot be inferred, and writes the commit message path as `AUTO_RESEARCH/.../<basename>` for both inferred and explicit paths.
+- `template/package/experiment.py` documents the `rehearsal_score` field in its docstring.
+- Comments and docstrings touched by the 4.1.1 fixes are written in English, as this repository requires. No executable code changed.
+
 ## [4.1.1] - 2026-11-13
 
 ### Fixed
