@@ -515,7 +515,7 @@ def try_append_executed_on_relaunch(
     ledger_rows: int | None = None,
     stall_streak: int | None = None,
 ) -> dict[str, Any] | None:
-    """``NN_RELAUNCH`` 非空且 contract 有 diff → 记 executed；不改 TSV 格子。"""
+    """If ``NN_RELAUNCH`` is set and contract differs → record executed; do not edit TSV cells."""
     if not (relaunch_env or "").strip():
         return None
     if prev_exp_dir is None or cur_exp_dir is None:

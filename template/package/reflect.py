@@ -1627,7 +1627,7 @@ def _maybe_record_executed_e_feedback(
     metric_key: str,
     ledger_rows: int | None,
 ) -> None:
-    """Phase 0.75 后：开闸 + contract diff → executed（不改 TSV 格子）。"""
+    """After Phase 0.75: relaunch + contract diff → executed (does not edit TSV cells)."""
     from lib.e_feedback_store import try_append_executed_on_relaunch
     from lib.exploration_stamp import prev_trained_exp_dir
 
@@ -1665,7 +1665,7 @@ def _maybe_record_shout_e_feedback(
     ledger_rows: int | None,
     stall_streak: int | None,
 ) -> None:
-    """Phase 1 JSON 主张、理由、请求、类型、一行标题齐全 → shout；禁止扫 Tier E 散文。"""
+    """Phase 1 JSON claim/why/ask/type/headline complete → shout; do not scrape Tier E prose."""
     from lib.e_feedback_store import try_append_shout_from_reflect
 
     cur = _current_exp_dir_for_e_feedback(repo_root, fingerprint, round_decision)
@@ -2846,7 +2846,7 @@ def main():
         }
         _apply_phase1_anchors(phase1, _ROOT)
 
-    # 改题主张：Phase 1 结构化三键齐全 → shout（禁止扫 Tier E 散文）
+    # Change proposal: Phase 1 structured keys complete → shout (no Tier E prose scrape)
     try:
         _stall = int(phase1.get("streak_count") or 0) if isinstance(phase1, dict) else 0
         _maybe_record_shout_e_feedback(
