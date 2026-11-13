@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.3] - 2026-11-13
+
+### Fixed
+
+- fix: 改题卡轮次与停滞拆字段，禁自造 round
+
 ## [4.1.2] - 2026-11-13
 
 ### Fixed
