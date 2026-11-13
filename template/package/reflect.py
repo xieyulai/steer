@@ -1625,7 +1625,7 @@ def _maybe_record_executed_e_feedback(
     fingerprint: dict | None,
     round_decision: dict | None,
     metric_key: str,
-    round_hint: int | None,
+    ledger_rows: int | None,
 ) -> None:
     """Phase 0.75 后：开闸 + contract diff → executed（不改 TSV 格子）。"""
     from lib.e_feedback_store import try_append_executed_on_relaunch
@@ -1649,7 +1649,8 @@ def _maybe_record_executed_e_feedback(
         prev_exp_dir=prev,
         cur_exp_dir=cur,
         experiment=cur.name,
-        round_hint=round_hint,
+        ledger_rows=ledger_rows,
+        round_hint=ledger_rows,
     )
     if rec and "skipped" not in rec:
         print(f"[reflect] e_feedback executed: {rec.get('id')}", file=sys.stderr)
@@ -1661,7 +1662,8 @@ def _maybe_record_shout_e_feedback(
     *,
     fingerprint: dict | None,
     round_decision: dict | None,
-    round_hint: int | None,
+    ledger_rows: int | None,
+    stall_streak: int | None,
 ) -> None:
     """Phase 1 JSON 主张、理由、请求、类型、一行标题齐全 → shout；禁止扫 Tier E 散文。"""
     from lib.e_feedback_store import try_append_shout_from_reflect
@@ -1674,7 +1676,9 @@ def _maybe_record_shout_e_feedback(
             repo_root,
             phase1,
             experiment=experiment,
-            round_hint=round_hint,
+            ledger_rows=ledger_rows,
+            stall_streak=stall_streak,
+            round_hint=ledger_rows,
             quote=quote,
         )
     except ValueError as exc:
@@ -2664,7 +2668,7 @@ def main():
             fingerprint=fingerprint_dict or None,
             round_decision=round_decision,
             metric_key=METRIC_KEY,
-            round_hint=len(rows) if rows else None,
+            ledger_rows=len(rows) if rows else None,
         )
     except Exception as _ef_ex:
         print(f"[reflect] WARN e_feedback executed: {_ef_ex}", file=sys.stderr)
@@ -2844,12 +2848,14 @@ def main():
 
     # 改题主张：Phase 1 结构化三键齐全 → shout（禁止扫 Tier E 散文）
     try:
+        _stall = int(phase1.get("streak_count") or 0) if isinstance(phase1, dict) else 0
         _maybe_record_shout_e_feedback(
             _ROOT,
             phase1 if isinstance(phase1, dict) else {},
             fingerprint=fingerprint_dict or None,
             round_decision=round_decision,
-            round_hint=int(phase1.get("streak_count") or 0) or (len(rows) if rows else None),
+            ledger_rows=len(rows) if rows else None,
+            stall_streak=_stall if _stall > 0 else None,
         )
     except Exception as _sh_ex:
         print(f"[reflect] WARN e_feedback shout: {_sh_ex}", file=sys.stderr)

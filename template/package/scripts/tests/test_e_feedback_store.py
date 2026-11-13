@@ -71,6 +71,9 @@ def test_append_shout_writes_record_shape_and_id(tmp_path: Path):
     assert rec["kind"] == "shout"
     assert rec["experiment"] == "exp_demo"
     assert rec["round_hint"] == 3
+    assert rec["ledger_rows"] == 3
+    assert "stall_streak" not in rec
+    assert "round" not in rec
     assert rec["proposed"] == "改主指标定义"
     assert rec["why_abcd_insufficient"] == "A-D 扫不动官方测试口径"
     assert rec["ask"] == "开闸改主指标"
@@ -373,6 +376,24 @@ def test_try_append_executed_requires_relaunch_and_diff(tmp_path: Path):
     assert rec["why_abcd_insufficient"] == "relaunch"
     assert rec["ask"] == "already"
     assert rec["source"] == "reflect"
+
+
+def test_ledger_rows_and_stall_streak_are_separate(tmp_path: Path):
+    rec = append_event(
+        tmp_path,
+        **_shout_kwargs(
+            proposed="允许解码端记住上一帧",
+            round_hint=None,
+            ledger_rows=86,
+            stall_streak=105,
+            e_type="information_visibility",
+            headline="允许解码端记住上一帧",
+        ),
+    )
+    assert rec["ledger_rows"] == 86
+    assert rec["stall_streak"] == 105
+    assert rec["round_hint"] == 86  # deprecated alias of ledger_rows
+    assert "round" not in rec
 
 
 def test_shout_requires_type_and_headline(tmp_path: Path):

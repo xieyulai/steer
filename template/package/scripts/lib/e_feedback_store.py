@@ -154,7 +154,9 @@ def append_event(
     quote: str,
     experiment: str,
     source: str,
-    round_hint: int | None,
+    round_hint: int | None = None,
+    ledger_rows: int | None = None,
+    stall_streak: int | None = None,
     e_type: str | None = None,
     headline: str = "",
     e_type_note: str = "",
@@ -166,6 +168,16 @@ def append_event(
         _blank(proposed) or _blank(why_abcd_insufficient) or _blank(ask)
     ):
         return {"skipped": "incomplete"}
+
+    # Platform "round" = ledger row count at write time. stall_streak is the
+    # plateau counter and must not be stuffed into round_hint.
+    # round_hint is a deprecated alias of ledger_rows (written, not read).
+    if ledger_rows is None and round_hint is not None:
+        ledger_rows = round_hint
+    if round_hint is None and ledger_rows is not None:
+        round_hint = ledger_rows
+    elif ledger_rows is not None:
+        round_hint = ledger_rows
 
     records = load_records(repo_root)
     now = _now_iso()
@@ -222,6 +234,12 @@ def append_event(
             "note": None,
         },
     }
+    if ledger_rows is not None:
+        rec["ledger_rows"] = int(ledger_rows)
+    if stall_streak is not None:
+        rec["stall_streak"] = int(stall_streak)
+    # Never write a bare "round" key — business scripts that invent it confuse
+    # the platform page (fake 300+ rounds). Doctor fails cards that carry it.
     rec.update(face)
     records.append(rec)
     _atomic_write(feedback_path(repo_root), records)
@@ -279,6 +297,8 @@ def attach_rehearsal(
             experiment="",
             source="rehearse",
             round_hint=None,
+            ledger_rows=None,
+            stall_streak=None,
             e_type=e_type,
             headline=headline,
             e_type_note=e_type_note,
@@ -458,7 +478,9 @@ def try_append_shout_from_reflect(
     payload: dict,
     *,
     experiment: str,
-    round_hint: int | None,
+    round_hint: int | None = None,
+    ledger_rows: int | None = None,
+    stall_streak: int | None = None,
     quote: str = "",
 ) -> dict[str, Any]:
     proposed, why, ask = shout_fields_from_reflect_payload(payload)
@@ -473,6 +495,8 @@ def try_append_shout_from_reflect(
         experiment=experiment,
         source="reflect",
         round_hint=round_hint,
+        ledger_rows=ledger_rows,
+        stall_streak=stall_streak,
         e_type=str(payload.get("e_type") or ""),
         headline=str(payload.get("e_headline") or ""),
         e_type_note=str(payload.get("e_type_note") or ""),
@@ -488,6 +512,8 @@ def try_append_executed_on_relaunch(
     cur_exp_dir: Path | str | None,
     experiment: str,
     round_hint: int | None = None,
+    ledger_rows: int | None = None,
+    stall_streak: int | None = None,
 ) -> dict[str, Any] | None:
     """``NN_RELAUNCH`` 非空且 contract 有 diff → 记 executed；不改 TSV 格子。"""
     if not (relaunch_env or "").strip():
@@ -511,4 +537,6 @@ def try_append_executed_on_relaunch(
         experiment=experiment,
         source="reflect",
         round_hint=round_hint,
+        ledger_rows=ledger_rows,
+        stall_streak=stall_streak,
     )

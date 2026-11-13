@@ -232,9 +232,25 @@ def test_e_feedback_ok(tmp_path: Path):
         "id": "E20260829_001",
         "kind": "shout",
         "resolution": {"status": "pending"},
+        "ledger_rows": 86,
+        "stall_streak": 105,
     }
     p.write_text(json.dumps(rec) + "\n", encoding="utf-8")
     assert check_e_feedback_file(p) == []
+
+
+def test_e_feedback_invented_round_key_fail(tmp_path: Path):
+    p = tmp_path / "_runs" / "analysis" / "e_feedback.jsonl"
+    p.parent.mkdir(parents=True)
+    rec = {
+        "id": "E20260829_001",
+        "kind": "shout",
+        "resolution": {"status": "pending"},
+        "round": 293,
+    }
+    p.write_text(json.dumps(rec) + "\n", encoding="utf-8")
+    issues = check_e_feedback_file(p)
+    assert any(i.severity == "FAIL" and "round" in i.message for i in issues)
 
 
 def test_aggregate_fail_wins():

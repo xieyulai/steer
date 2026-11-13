@@ -538,6 +538,8 @@ poetry run python train.py --config _repro_config.json
 | `./auto-nn-run.sh reflect` | **仅反思**（调用 `reflect.py`；更新 `EXPERIENCE.md`、`REFLECT_INDEX`、`references/auto/`）；**不计入** N |
 | `./auto-nn-run.sh N reflect` | N 个实验轮；**每实验轮结束后按 §7.6 门禁**决定是否 reflect（reflect 不占实验配额） |
 
+**三种「轮」不要混用：** 平台页面口径的「轮次」＝成绩台账（`results.tsv`）**行号**（一行＝一个已评测槽位；行号按时间升序）。steer 命令里的「实验轮 N」＝一次编排批次（可含多槽、因而多行）。业务自编 `_rNNN_` / 卡上的裸 `round` 字段**不是**权威轮次——改题卡写 `ledger_rows`（写卡瞬间的台账行数）与可选的 `stall_streak`（撞墙停滞计数）；`round_hint` 仅作 `ledger_rows` 的旧别名，勿再塞停滞数。
+
 ### 7.2.1 goal 与 loop 停止条件（达标即停，v4 schema）
 
 - **goal 配置**（`nn-config.yaml` → `goal` 段；init **块 G2** 或 **`/auto-nn-goal`**）：

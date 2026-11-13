@@ -175,6 +175,16 @@ def check_e_feedback_file(path: Path) -> list[Issue]:
                     f"e_feedback.jsonl L{n}: 缺字段 {','.join(missing)}",
                 )
             )
+        # Bare "round" is not a template field. Business scripts that invent it
+        # fake platform rounds (e.g. 293 when the ledger is at row 136).
+        if "round" in obj:
+            issues.append(
+                Issue(
+                    "FAIL",
+                    f"e_feedback.jsonl L{n}: 禁止自造 round 字段"
+                    f"（平台轮次用 ledger_rows / 台账行号；停滞用 stall_streak）",
+                )
+            )
     return issues
 
 
