@@ -367,19 +367,19 @@ check_no_fallback() {
 # check_no_fallback already calls row itself — absorb return only, never row twice.
 if [[ -f train.py ]]; then
   if check_repro_env .; then
-    row G_repro_env PASS "见检查输出"
+    row G_repro_env PASS "see check output"
   else
-    row G_repro_env FAIL "见检查输出"
+    row G_repro_env FAIL "see check output"
   fi
   if check_repro_cli train.py; then
-    row G_repro_cli PASS "见检查输出"
+    row G_repro_cli PASS "see check output"
   else
-    row G_repro_cli FAIL "见检查输出"
+    row G_repro_cli FAIL "see check output"
   fi
   if check_cfg_no_defaults .; then
-    row G_cfg_no_defaults PASS "见检查输出"
+    row G_cfg_no_defaults PASS "see check output"
   else
-    row G_cfg_no_defaults FAIL "见检查输出"
+    row G_cfg_no_defaults FAIL "see check output"
   fi
   if check_no_fallback .; then
     :

@@ -141,8 +141,8 @@ def test_g_no_fallback_not_double_rowed_on_fail():
     text = DOCTOR.read_text(encoding="utf-8")
     assert "if check_no_fallback .; then" in text
     assert 'row G_no_fallback FAIL "见 G-no-fallback 检查"' not in text
-    assert "row G_repro_env PASS" in text
-    assert "row G_repro_env FAIL" in text
+    assert 'row G_repro_env PASS "see check output"' in text
+    assert 'row G_repro_env FAIL "see check output"' in text
 
 
 def test_auto_nn_update_runs_doctor_even_when_verify_fails():

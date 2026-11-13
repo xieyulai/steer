@@ -35,14 +35,14 @@ DEC_MSG_PREFIX="AUTO_RESEARCH/e-card-backfill/decisions"
 
 REPO="${1:-}"
 if [[ -z "$REPO" ]]; then
-  echo "用法: commit_card.sh <仓名> [判定文件...]" >&2
+  echo "usage: commit_card.sh <repo> [decision-file...]" >&2
   exit 2
 fi
 shift || true
 
 ROOT="$PROJ/$REPO"
 if [[ ! -d "$ROOT" ]]; then
-  echo "仓不存在: $ROOT" >&2
+  echo "repo not found: $ROOT" >&2
   exit 2
 fi
 cd "$ROOT" || exit 2
@@ -70,7 +70,7 @@ if [[ $# -gt 0 ]]; then
     if [[ -f "$f" ]]; then
       _add_dec "$(_dec_msg_path "$f")"
     else
-      echo "WARN: 指定的判定文件不存在，跳过: $f" >&2
+      echo "WARN: decision file missing, skipped: $f" >&2
     fi
   done
 else
@@ -80,40 +80,41 @@ else
   done
 fi
 if [[ -z "$DEC_LIST" ]]; then
-  echo "未找到判定文件: ${DEC_MSG_PREFIX}/${REPO}[.partN].json" >&2
+  echo "no decision file found: ${DEC_MSG_PREFIX}/${REPO}[.partN].json" >&2
   if [[ $EXPLICIT -eq 1 ]]; then
-    echo "显式传入的路径均不存在，已中止（未提交）。" >&2
+    echo "all explicit paths are missing; aborted (nothing committed)." >&2
   else
-    echo "自动推断为空，已中止（未提交）。请补判定文件或显式传入路径。" >&2
+    echo "auto-infer found nothing; aborted (nothing committed). Add decision files or pass paths." >&2
   fi
   exit 2
 fi
 
 # ── Stage only this backfill's target file ─────────────────────────────
-git add -- "$LEDGER" || { echo "git add 失败: $REPO" >&2; exit 1; }
+git add -- "$LEDGER" || { echo "git add failed: $REPO" >&2; exit 1; }
 if git diff --cached --quiet -- "$LEDGER"; then
-  echo "无改动，无需提交: $REPO"
+  echo "no changes to commit: $REPO"
   exit 0
 fi
 
 # Belt and braces: no file other than the ledger may be in the index
 EXTRA="$(git diff --cached --name-only | grep -v -x -F "$LEDGER" || true)"
 if [[ -n "$EXTRA" ]]; then
-  echo "暂存区含非本次回填文件，已中止（未提交）:" >&2
+  echo "index holds files outside this backfill; aborted (nothing committed):" >&2
   printf '  %s\n' "$EXTRA" >&2
-  echo "已撤销本脚本对台账的 stage；其它已暂存文件未动。" >&2
+  echo "unstaged the ledger this script added; other staged files were left alone." >&2
   git restore --staged -- "$LEDGER" 2>/dev/null || git reset HEAD -- "$LEDGER" 2>/dev/null || true
   exit 1
 fi
 
-MSG="chore(e-card): 人工判定回填 E 卡新卡面（e_type + headline）
+MSG="chore(e-card): manual backfill of E-card face fields (e_type + headline)
 
-人工判定回填，非软件自动回填。逐卡依据见
+Manual adjudication backfill, not an automatic software write-back. Per-card
+basis:
 ${DEC_LIST}
-与 AUTO_RESEARCH/e-card-backfill/decisions/RULES.md。
-模板 4.1.0 起新 shout 须带 e_type + 一行 headline；本次按用户拍板
-对存量旧卡补卡面，只新增 e_type/headline/e_type_note/continues 四键，
-其余字段逐字节未动。"
+and AUTO_RESEARCH/e-card-backfill/decisions/RULES.md.
+Since template 4.1.0 a new shout must carry e_type and a one-line headline;
+this pass only adds e_type / headline / e_type_note / continues on existing
+cards. Every other field is left byte-for-byte unchanged."
 
-git commit -m "$MSG" -- "$LEDGER" || { echo "git commit 失败: $REPO" >&2; exit 1; }
-echo "已提交: $REPO ($LEDGER)"
+git commit -m "$MSG" -- "$LEDGER" || { echo "git commit failed: $REPO" >&2; exit 1; }
+echo "committed: $REPO ($LEDGER)"

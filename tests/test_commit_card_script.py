@@ -108,7 +108,7 @@ def test_commit_message_lists_actual_part_files(tmp_path):
     # The hardcoded path must not appear (that file does not exist at all)
     assert f"decisions/{REPO}.json" not in msg, msg
     # The manual backfill must identify itself
-    assert "人工判定回填，非软件自动回填" in msg, msg
+    assert "Manual adjudication backfill, not an automatic software write-back" in msg, msg
 
 
 def test_single_file_repo_uses_plain_decision_path(tmp_path):
@@ -127,7 +127,7 @@ def test_aborts_when_index_contains_other_files(tmp_path):
     _git(repo, "add", "business_card.txt")
     proc = _run(base, REPO)
     assert proc.returncode == 1, proc.stdout + proc.stderr
-    assert "暂存区含非本次回填文件" in proc.stderr, proc.stderr
+    assert "index holds files outside this backfill" in proc.stderr, proc.stderr
     # No new commit
     assert "init" in _git(repo, "log", "-1", "--pretty=format:%s")
     cached = _git(repo, "diff", "--cached", "--name-only").split()
@@ -155,7 +155,7 @@ def test_aborts_when_no_decision_files(tmp_path):
         p.unlink()
     proc = _run(base, REPO)
     assert proc.returncode == 2, proc.stdout + proc.stderr
-    assert "未找到判定文件" in proc.stderr, proc.stderr
+    assert "no decision file found" in proc.stderr, proc.stderr
     assert "init" in _git(repo, "log", "-1", "--pretty=format:%s")
 
 
