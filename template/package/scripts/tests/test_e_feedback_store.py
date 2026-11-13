@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -524,3 +525,55 @@ def test_attach_rehearsal_overwrite_cannot_change_metric(tmp_path: Path):
         )
     saved = load_records(tmp_path)[0]
     assert saved["rehearsal"]["metric"] == 0.9
+
+
+def test_resolve_omitted_by_is_not_human(tmp_path: Path):
+    rec = append_event(tmp_path, **_shout_kwargs())
+    updated = resolve(tmp_path, rec["id"], "deferred", note="搁置")
+    assert updated["resolution"]["by"] == ""
+
+
+def test_cli_resolve_requires_by_and_writes_the_given_label(tmp_path: Path):
+    rec = append_event(tmp_path, **_shout_kwargs())
+    script = PKG / "scripts" / "e_feedback.py"
+    missing = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "resolve",
+            "--id",
+            rec["id"],
+            "--status",
+            "rejected",
+            "--repo-root",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert missing.returncode != 0
+    still = load_records(tmp_path)[0]
+    assert still["resolution"]["status"] == "pending"
+    assert still["resolution"]["by"] is None
+
+    named = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "resolve",
+            "--id",
+            rec["id"],
+            "--status",
+            "rejected",
+            "--by",
+            "analyse-session",
+            "--repo-root",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert named.returncode == 0, named.stderr
+    saved = load_records(tmp_path)[0]
+    assert saved["resolution"]["status"] == "rejected"
+    assert saved["resolution"]["by"] == "analyse-session"

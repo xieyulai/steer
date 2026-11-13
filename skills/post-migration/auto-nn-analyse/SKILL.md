@@ -252,7 +252,7 @@ python3 scripts/summarize-runs.py --repo-root . --roadmap-status
    - A) 留下（只记建议，不改题）
    - B) 搁置（当没发生，下次可再提）
    - C) 驳回（类似主张以后不要再提）
-4. 人**本回合**明确选了 → `python3 scripts/e_feedback.py resolve --id <id> --status adopted|deferred|rejected --note "…" --repo-root .`。**只更新改题记录**。未答 → 保持 pending，analyse 照常结束。
+4. 人**本回合**明确选了 → `python3 scripts/e_feedback.py resolve --id <id> --status adopted|deferred|rejected --by <本次调用者> --note "…" --repo-root .`。**只更新改题记录**；`--by` 只是备注，命令不会把它写成 human。未答 → 保持 pending，analyse 照常结束。
 5. **三种处置都不改实验**（不改 `contract/`、不开闸、不代跑改能力、不改 `train.py`/`workspace/`）。留下 → 复述建议；驳回 → 以后不提类似；搁置 → 当没发生，下次仍可再提。
 6. **仍禁止**：改代码、`HUMAN_GUIDANCE.md`、`train`、手改 jsonl。**禁止**因「留下」去推 `/auto-nn-modify`。
 

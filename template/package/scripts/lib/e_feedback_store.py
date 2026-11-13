@@ -334,8 +334,10 @@ def resolve(
     status: str,
     *,
     note: str = "",
-    by: str = "human",
+    by: str = "",
 ) -> dict[str, Any]:
+    # `by` is a label only. Empty means the caller did not name an actor.
+    # Do not default this to "human".
     if status not in RESOLVE_OK:
         raise ValueError(f"status 须为 {sorted(RESOLVE_OK)}，得 {status!r}")
     records = load_records(repo_root)
