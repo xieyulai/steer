@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- fix: 改题卡轮次与停滞拆字段，禁自造 round
+- Change-proposal cards no longer stuff the plateau streak into `round_hint`. New fields are `ledger_rows` (ledger row count at write time = platform round) and `stall_streak` (plateau counter). `round_hint` remains as a deprecated alias of `ledger_rows`.
+- `check_e_feedback_file` fails when a card invents a bare `round` key. Protocol §7.2 states the three meanings of "round": ledger row, orchestration batch, and free-text `_rNNN_` (not authoritative).
 
 ## [4.1.2] - 2026-11-13
 
