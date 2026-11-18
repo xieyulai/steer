@@ -66,9 +66,16 @@ python3 scripts/nn_audit.py pipeline --repo-root . --fetch-external
 python3 scripts/nn_audit.py pipeline --repo-root . --exp-dir _runs/exp/<dir>
 python3 scripts/nn_audit.py pipeline --repo-root . --scenario <scenario_id>
 python3 scripts/nn_audit.py show --repo-root .              # 只读贴已有卡片
+# 论文口径（显式种子数 / 显式消融清单 / 消融多种子）：
+python3 scripts/nn_audit.py pipeline --repo-root . --n-seeds 10 --ablation-keys k1,k2 --ablation-seeds 10
+# 显式种子列表（含基准种子时自动去重；省略则从原种子连续取 --n-seeds 个）：
+python3 scripts/nn_audit.py pipeline --repo-root . --seeds 3,4,5
 ```
 
 审查臂走 `train.py --no-auto-finalize-round`；环境由脚本强制：`NN_SKIP_WRITE_KEEPER=1`、`NN_AUTO_FINALIZE_ROUND=0`、`NN_PARALLEL_TOTAL=1`。实验名必须以 `audit_` 开头。默认不联网；要做有文献支撑的审查，Agent **必须**传 `--fetch-external`。
+
+- `--ablation-keys` 给定则**跳过新不新自动选键**（人指定 = 明确意图）；消融多种子时首行沿用 `audit_ablate_<键>`（原种子），其余加 `_s<seed>` 后缀，种子与多种子行同源（`extra_seeds`）对齐。
+- 卡片目录附带 `runs.tsv`（`kind/experiment/seed/key/primary/metric/metric_direction/exp_dir`，机器可读，供统计脚本直接吃；不入成绩表）。
 
 3. **贴卡片人话**（路径 + 一句结论：复现过没、多种子稳不稳、新不新或「审的是公开对照已跳过」、消融掉没）。不裸抛内部码。
    没尺子时加一句：先立朴素下界 `/auto-nn-plain`，需要上界再 `/auto-nn-reference`。
