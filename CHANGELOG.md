@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-11-18
+
+### Added
+
+- feat(audit): explicit seeds/ablation keys, per-key multi-seed ablation, machine-readable runs.tsv card
+
 ## [4.1.4] - 2026-11-13
 
 ### Fixed
