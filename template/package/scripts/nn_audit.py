@@ -400,6 +400,27 @@ def _render_card_md(
     )
 
 
+def _write_runs_tsv(card_dir: Path, arms: list[dict], target: AuditTarget) -> None:
+    """审查产出的机器可读行清单（供统计脚本直接吃；不入 _runs/results.tsv）。"""
+    cols = ("kind", "experiment", "seed", "key", "primary", "metric", "metric_direction", "exp_dir")
+    metric = str(getattr(target, "metric_key", "") or "")
+    direction = str(getattr(target, "metric_direction", "") or "")
+    lines = ["\t".join(cols)]
+    for a in arms:
+        primary = a.get("primary")
+        lines.append("\t".join([
+            str(a.get("kind", "")),
+            str(a.get("experiment", "")),
+            str(a.get("seed", "")),
+            str(a.get("key", "")),
+            "" if primary is None else str(float(primary)),
+            metric,
+            direction,
+            str(a.get("exp_dir", "")),
+        ]))
+    (card_dir / "runs.tsv").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def write_card(
     repo_root,
     target: AuditTarget,
@@ -475,6 +496,7 @@ def write_card(
     _dump(card_dir / "card.json", card)
     _dump(card_dir / "attest.json", attest)
     _dump(card_dir / "arms.json", arms)
+    _write_runs_tsv(card_dir, arms, target)
     write_index_entry(
         root,
         scenario_id=target.scenario_id,
@@ -571,8 +593,17 @@ def pipeline(
     dry_run_external: bool = False,
     paper_verdict: str | None = None,
     runner: ArmRunner | None = None,
+    seeds_override: list[int] | None = None,
+    ablation_keys_override: list[str] | None = None,
+    ablation_n_seeds: int = 1,
 ) -> Path:
-    """固定顺序：pick → attest → repro → extra seeds → ablation → 写卡。"""
+    """固定顺序：pick → attest → repro → extra seeds → ablation → 写卡。
+
+    - ``seeds_override``：显式多种子列表；含基准种子时自动去重（复现行永远是原种子）。
+    - ``ablation_keys_override``：显式消融零件清单；给定则不再依赖新不新判定自动选键。
+    - ``ablation_n_seeds``：每个消融零件跑的种子数（默认 1 = 仅原种子，历史行为；
+      第 1 个沿用无后缀实验名，其余加 ``_s<seed>`` 后缀，种子与多种子行同源对齐）。
+    """
     root = Path(repo_root).resolve()
     target: AuditTarget | None = None
     attest: AttestResult | None = None
@@ -666,7 +697,16 @@ def pipeline(
             return _flush("repro_failed")
 
         try:
-            seeds = extra_seeds(target.original_seed, int(n_seeds) if n_seeds else 5)
+            if seeds_override:
+                seeds = [int(target.original_seed)]
+                seen = {int(target.original_seed)}
+                for s in seeds_override:
+                    s = int(s)
+                    if s not in seen:
+                        seen.add(s)
+                        seeds.append(s)
+            else:
+                seeds = extra_seeds(target.original_seed, int(n_seeds) if n_seeds else 5)
             for seed in seeds[1:]:
                 seed_name = f"audit_seed_{seed}"
                 seed_cfg_path = cfg_dir / f"{seed_name}.json"
@@ -684,33 +724,39 @@ def pipeline(
                     repo_root=root,
                 ))
 
-            if (
-                attest.attested_depth == "novel"
-                and repro_ok
-                and attest.ablation_keys
-            ):
+            if ablation_keys_override:
+                ablation_keys = [str(k) for k in ablation_keys_override]
+            elif attest.attested_depth == "novel" and attest.ablation_keys:
+                ablation_keys = [str(k) for k in attest.ablation_keys]
+            else:
+                ablation_keys = []
+            if ablation_keys:
                 baseline_cfg = _load_baseline_cfg(root, target.scenario_id)
-                for key in attest.ablation_keys:
-                    ab_name = f"audit_ablate_{_safe_token(key)}"
-                    ab_cfg = _with_seed(
-                        ablation_config(orig_cfg, baseline_cfg, [key]),
-                        target.original_seed,
-                    )
-                    ab_cfg_path = cfg_dir / f"{ab_name}.json"
-                    _dump(ab_cfg_path, ab_cfg)
-                    ab_exp = run_arm(
-                        root, ab_cfg_path, ab_name, runner=runner, card_dir=card_dir,
-                    )
-                    ab_score = _primary_from_exp(Path(ab_exp), target.metric_key)
-                    arms.append(_arm_record(
-                        kind="ablate",
-                        experiment=ab_name,
-                        seed=target.original_seed,
-                        primary=ab_score,
-                        exp_dir=ab_exp,
-                        repo_root=root,
-                        key=str(key),
-                    ))
+                ab_seeds = extra_seeds(target.original_seed, max(1, int(ablation_n_seeds)))
+                for key in ablation_keys:
+                    base_token = _safe_token(key)
+                    for ai, ab_seed in enumerate(ab_seeds):
+                        suffix = "" if ai == 0 else f"_s{int(ab_seed)}"
+                        ab_name = f"audit_ablate_{base_token}{suffix}"
+                        ab_cfg = _with_seed(
+                            ablation_config(orig_cfg, baseline_cfg, [key]),
+                            int(ab_seed),
+                        )
+                        ab_cfg_path = cfg_dir / f"{ab_name}.json"
+                        _dump(ab_cfg_path, ab_cfg)
+                        ab_exp = run_arm(
+                            root, ab_cfg_path, ab_name, runner=runner, card_dir=card_dir,
+                        )
+                        ab_score = _primary_from_exp(Path(ab_exp), target.metric_key)
+                        arms.append(_arm_record(
+                            kind="ablate",
+                            experiment=ab_name,
+                            seed=int(ab_seed),
+                            primary=ab_score,
+                            exp_dir=ab_exp,
+                            repo_root=root,
+                            key=str(key),
+                        ))
         except Exception:
             _flush("partial")
             raise
@@ -743,6 +789,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     pipe = sub.add_parser("pipeline", help="完整审查管线")
     _add_common(pipe)
     pipe.add_argument("--n-seeds", type=int, default=5)
+    pipe.add_argument("--seeds", default=None,
+                      help="显式多种子列表（逗号分隔）；含基准种子时自动去重；省略则从原种子连续取 --n-seeds 个")
+    pipe.add_argument("--ablation-keys", default=None,
+                      help="显式消融零件清单（逗号分隔 config 键）；给定则跳过新不新自动选键")
+    pipe.add_argument("--ablation-seeds", type=int, default=1,
+                      help="每个消融零件跑的种子数（默认 1=仅原种子，历史行为）")
     pipe.add_argument("--skip-train", action="store_true")
     pipe.add_argument("--dry-run-external", action="store_true", help="不访问外部文献（与 --fetch-external 同时出现时以此为准）")
     pipe.add_argument("--fetch-external", action="store_true")
@@ -803,6 +855,11 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(asdict(r), ensure_ascii=False, indent=2, default=str))
         return 0
     if args.cmd == "pipeline":
+        def _csv_list(v) -> list[str]:
+            return [x.strip() for x in str(v or "").split(",") if x.strip()]
+
+        seeds_ov = [int(x) for x in _csv_list(getattr(args, "seeds", None))] or None
+        ab_keys = _csv_list(getattr(args, "ablation_keys", None)) or None
         card_dir = pipeline(
             root,
             exp_dir=exp_dir,
@@ -811,6 +868,9 @@ def main(argv: list[str] | None = None) -> int:
             skip_train=bool(getattr(args, "skip_train", False)),
             fetch_external=bool(getattr(args, "fetch_external", False)),
             dry_run_external=bool(getattr(args, "dry_run_external", False)),
+            seeds_override=seeds_ov,
+            ablation_keys_override=ab_keys,
+            ablation_n_seeds=int(getattr(args, "ablation_seeds", 1) or 1),
         )
         print(f"card_dir={card_dir}")
         md = card_dir / "card.md"
